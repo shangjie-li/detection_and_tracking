@@ -54,6 +54,7 @@ ROS package for detection and tracking
     - `RotationAngleX/Y/Z`：该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据标定效果进行细微调整，单位为度。
  - 修改目标检测及跟踪算法相关参数`detection_and_tracking/scripts/param.yaml`
    ```Shell
+   ...
    image_topic: /usb_cam/image_rect_color
    lidar_topic: /velodyne_points
    pub_topic: /targets
@@ -69,6 +70,8 @@ ROS package for detection and tracking
    the_view_lower_limit: -2.0
    the_min_distance: 0.5
    the_max_distance: 100
+   
+   ...
    
    jet_color: 25
    ```
@@ -92,7 +95,7 @@ ROS package for detection and tracking
    ```Shell
    python3 detection_and_tracking.py
    ```
- - 检测及跟踪的目标发布至话题`/targets`，类型为`BoundingBoxArray`，可以通过rviz查看
+ - 检测及跟踪的目标发布至话题`/targets`，类型为`BoundingBoxArray`，可以通过`rviz`查看
 
 ## 附图
    ```Shell
