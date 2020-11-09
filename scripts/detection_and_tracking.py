@@ -705,6 +705,21 @@ def velodyne_callback(pointcloud):
     
     # 载入激光雷达点云
     pointXYZ = pointcloud2_to_xyz_array(pointcloud, remove_nans=True)
+    if is_limit_mode:
+        alpha = 90 - 0.5 * the_field_of_view
+        k = math.tan(alpha * math.pi / 180.0)
+        if the_view_number == 1:
+            pointXYZ = pointXYZ[np.logical_and((pointXYZ[:, 0] > k * pointXYZ[:, 1]), (pointXYZ[:, 0] > -k * pointXYZ[:, 1]))]
+        elif the_view_number == 2:
+            pointXYZ = pointXYZ[np.logical_and((-pointXYZ[:, 1] > k * pointXYZ[:, 0]), (-pointXYZ[:, 1] > -k * pointXYZ[:, 0]))]
+        elif the_view_number == 3:
+            pointXYZ = pointXYZ[np.logical_and((-pointXYZ[:, 0] > k * pointXYZ[:, 1]), (-pointXYZ[:, 0] > -k * pointXYZ[:, 1]))]
+        elif the_view_number == 4:
+            pointXYZ = pointXYZ[np.logical_and((pointXYZ[:, 1] > k * pointXYZ[:, 0]), (pointXYZ[:, 1] > -k * pointXYZ[:, 0]))]
+    if is_clip_mode:
+        pointXYZ = pointXYZ[np.logical_and((pointXYZ[:, 0] ** 2 + pointXYZ[:, 1] ** 2 > the_min_distance ** 2), (pointXYZ[:, 0] ** 2 + pointXYZ[:, 1] ** 2 < the_max_distance ** 2))]
+        pointXYZ = pointXYZ[np.logical_and((pointXYZ[:, 2] > the_view_lower_limit - the_sensor_height), (pointXYZ[:, 2] < the_view_higher_limit - the_sensor_height))]
+    
     cloud_xyz = calib.lidar_to_cam.dot(pointXYZ.T).T
     cloud_uv = calib.lidar_to_img.dot(pointXYZ.T).T
     cloud_uv = np.true_divide(cloud_uv[:, :2], cloud_uv[:, [-1]])
@@ -848,6 +863,17 @@ if __name__ == '__main__':
     calib = Calib()
     file_path = rospy.get_param("~calibration_file_path")
     calib.loadcalib(file_path)
+    
+    is_limit_mode = rospy.get_param("~is_limit_mode")
+    the_view_number = rospy.get_param("~the_view_number")
+    the_field_of_view = rospy.get_param("~the_field_of_view")
+    
+    is_clip_mode = rospy.get_param("~is_clip_mode")
+    the_sensor_height = rospy.get_param("~the_sensor_height")
+    the_view_higher_limit = rospy.get_param("~the_view_higher_limit")
+    the_view_lower_limit = rospy.get_param("~the_view_lower_limit")
+    the_min_distance = rospy.get_param("~the_min_distance")
+    the_max_distance = rospy.get_param("~the_max_distance")
     
     top_k_person = rospy.get_param("~top_k_person")
     top_k_vehicle = rospy.get_param("~top_k_vehicle")

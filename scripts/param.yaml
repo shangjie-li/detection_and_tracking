@@ -1,36 +1,46 @@
 dt:
-   display_main_window_mode: True
-   record_main_window_mode: True
+  display_main_window_mode: True
+  record_main_window_mode: True
 
-   display_top_view_window_mode: False
-   record_top_view_window_mode: False
+  display_top_view_window_mode: False
+  record_top_view_window_mode: False
 
-   print_time_stamp_mode: False
-   print_xx_mode: False
+  print_time_stamp_mode: False
+  print_xx_mode: False
 
-   display_mask_mode: False
-   display_pointcloud_mode: False
-   display_result_mode: True
+  display_mask_mode: True
+  display_pointcloud_mode: True
+  display_result_mode: True
 
-   image_topic: /usb_cam/image_rect_color
-   lidar_topic: /velodyne_points
-   pub_topic: /targets
+  image_topic: /usb_cam/image_rect_color
+  lidar_topic: /velodyne_points
+  pub_topic: /targets
+  calibration_file_path: /home/lishangjie/ros_workspace/detection_and_tracking_ws/src/detection_and_tracking/conf/head_camera.yaml
 
-   calibration_file_path: ~/ros_workspace/detection_and_tracking_ws/src/detection_and_tracking/conf/head_camera.yaml
+  is_limit_mode: True
+  the_view_number: 1
+  the_field_of_view: 100
+  
+  is_clip_mode: True
+  the_sensor_height: 2.0
+  the_view_higher_limit: 4.0
+  the_view_lower_limit: -2.0
+  the_min_distance: 0.5
+  the_max_distance: 100
 
-   top_k_person: 6
-   top_k_vehicle: 8
-   score_threshold_person: 0.15
-   score_threshold_vehicle: 0.65
+  top_k_person: 6
+  top_k_vehicle: 8
+  score_threshold_person: 0.15
+  score_threshold_vehicle: 0.65
 
-   distance_limit: 100
-   frame_rate: 10
-   associate_threshold_person: 2
-   associate_threshold_vehicle: 4
-   max_tracking_times: 0
-   sigmaax: 0.1
-   sigmaay: 0.1
-   sigmaox: 0.01
-   sigmaoy: 0.01
+  distance_limit: 100
+  frame_rate: 10
+  associate_threshold_person: 2
+  associate_threshold_vehicle: 4
+  max_tracking_times: 0
+  sigmaax: 0.1
+  sigmaay: 0.1
+  sigmaox: 0.01
+  sigmaoy: 0.01
 
-   jet_color: 5
+  jet_color: 25
