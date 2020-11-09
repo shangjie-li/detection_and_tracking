@@ -55,6 +55,7 @@ ROS package for detection and tracking
  - 修改目标检测及跟踪算法相关参数`detection_and_tracking/scripts/param.yaml`
    ```Shell
    ...
+   
    image_topic: /usb_cam/image_rect_color
    lidar_topic: /velodyne_points
    pub_topic: /targets
