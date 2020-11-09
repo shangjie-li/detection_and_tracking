@@ -29,6 +29,7 @@ ROS package for detection and tracking
    cd ..
    catkin_make
    ```
+ - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`detection_and_tracking/scripts/weights`
 
 ## 参数配置
  - 编写相机及激光雷达标定参数`detection_and_tracking/conf/head_camera.yaml`
