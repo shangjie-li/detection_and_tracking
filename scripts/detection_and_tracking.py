@@ -680,7 +680,7 @@ def velodyne_callback(pointcloud):
     display_result = rospy.get_param("~display_result_mode")
     
     # 主窗口图像
-    image_frame = cv_image[:, :, [2, 1, 0]]
+    image_frame = cv_image
     result_image = image_frame.copy()
     image_h = image_frame.shape[0]
     image_w = image_frame.shape[1]
