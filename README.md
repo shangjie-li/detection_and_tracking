@@ -18,6 +18,8 @@ ROS package for detection and tracking
    # Python3与ROS兼容
    pip3 install catkin_tools
    pip3 install rospkg
+   # jsk_recognition_msgs消息类型
+   sudo apt-get install ros-kinetic-jsk-recognition-msgs
    # 网络接口数据包捕获函数库
    sudo apt-get install libpcap-dev
    ```
@@ -98,6 +100,11 @@ ROS package for detection and tracking
    python3 detection_and_tracking.py
    ```
  - 检测及跟踪的目标发布至话题`/targets`，类型为`BoundingBoxArray`，可以通过`rviz`查看
+ - 如果运行时发生下列错误
+   ```Shell
+   RuntimeError: /pytorch/torch/csrc/jit/fuser/cuda/fused_kernel.cpp:137: a PTX JIT compilation failed
+   ```
+    - 出错原因可能是使用的Cuda版本与Pytorch版本不匹配，删除Cuda相关的环境变量即可解决。
 
 ## 附图
    ```Shell
