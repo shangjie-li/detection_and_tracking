@@ -521,6 +521,9 @@ def result_display(img_numpy, xx, xx_cube, xx_class, xx_color_idx):
             pt_1 = (uv[cube_polar_max_idx, 0], uv[cube_polar_max_idx, 1])
             pt_2 = (uv[cube_polar_min_idx, 0], uv[cube_polar_min_idx, 1])
             cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_polar_max_idx + 4, 0], uv[cube_polar_max_idx + 4, 1])
+            pt_2 = (uv[cube_polar_min_idx + 4, 0], uv[cube_polar_min_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
             
             # (x1,y1)处显示xx，(x2,y2)处显示xx_class
             x1 = uv[cube_polar_max_idx, 0]
