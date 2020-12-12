@@ -324,127 +324,209 @@ def result_display(img_numpy, xx, xx_cube, xx_class, xx_color_idx):
         return img_numpy
     num_xx = int(len(xx) / 4)
     
-    # 按距离从远到近的顺序显示目标信息
+    # 按距离从远到近，对包络立方体进行排序
     target_dd = []
-    for j in range(num_xx):
-        dd = xx[4 * j, 0] ** 2 + xx[4 * j + 2, 0] ** 2
+    for i in range(num_xx):
+        dd = xx[4 * i, 0] ** 2 + xx[4 * i + 2, 0] ** 2
         target_dd.append(dd)
+    target_idxs = list(np.argsort(target_dd))
+    xx_cube_idxs = []
+    for i in range(num_xx):
+        for cube_i in range(8):
+            xx_cube_idxs.append(8 * target_idxs[i] + cube_i)
+    # xx_cube_sorted为8n行3列坐标矩阵(x,y,z)，n为目标数量，每8行中，前4行为底面，后4行为顶面
+    xx_cube_sorted = xx_cube[xx_cube_idxs]
     
-    target_dis_idx = []
-    while max(target_dd) >= 0:
-        for j in range(num_xx):
-            if target_dd[j] == max(target_dd):
-                target_dis_idx.append(j)
-                target_dd[j] = -1
-                break
-    
-    for j in range(num_xx):
-        i = target_dis_idx[j]
-        cube_raw = xx_cube[range(8 * i, 8 * i + 8), :]
+    # 显示每个立方体
+    for i in range(num_xx):
+        color = COLORS[xx_color_idx[i]]
+        font_face = cv2.FONT_HERSHEY_DUPLEX
+        font_scale = 0.4
+        font_thickness = 1
         
-        # STEP1：只考虑立方体中近处的相邻两个面的6个顶点，cube为6行4列齐次坐标矩阵(x,y,z,1)
-        dd = 0
-        far_point_idx = 0
-        for p in range(4):
-            if cube_raw[p, 0] ** 2 + cube_raw[p, 2] ** 2 >= dd:
-                dd = cube_raw[p, 0] ** 2 + cube_raw[p, 2] ** 2
-                far_point_idx = p
-        p_idx_list = []
-        for idx in range(4):
-            if idx != far_point_idx:
-                p_idx_list.append(idx)
-        near_point_idx = p_idx_list + [idx + 4 for idx in p_idx_list]
-        cube = cube_raw[near_point_idx]
-        cube = np.column_stack((cube, np.ones((6, 1))))
+        cube = xx_cube_sorted[range(8 * i, 8 * i + 8), :]
+        center_x = np.mean(cube[:, 0])
+        center_z = np.mean(cube[:, 2])
         
-        # STEP2：将cube中各顶点投影到图像平面并排序，pixel为6行2列像素坐标矩阵(u,v)
-        pixel = calib.projection.dot(cube.T).T
+        # 按照俯视图逆时针，对包络矩形的顶点进行排序
+        local_polar_angle = []
+        for cube_i in range(4):
+            # math.atan2(y, x)返回值范围(-pi, pi]
+            local_polar_x = cube[cube_i, 0] - center_x
+            local_polar_z = cube[cube_i, 2] - center_z
+            local_polar_angle_i = math.atan2(local_polar_z, local_polar_x)
+            local_polar_angle.append(local_polar_angle_i)
+        local_polar_idxs = list(np.argsort(local_polar_angle))
+        cube_idxs = local_polar_idxs + [x + 4 for x in local_polar_idxs]
+        # cube_sorted为8行3列坐标矩阵(x,y,z)
+        cube_sorted = cube[cube_idxs]
+        
+        cube_sorted_homogeneous = np.column_stack((cube_sorted, np.ones((8, 1))))
+        pixel = calib.projection.dot(cube_sorted_homogeneous.T).T
         pixel = np.true_divide(pixel[:, :2], pixel[:, [-1]])
         pixel = pixel.astype(np.int16)
-        pix_u = []
-        for pix in range(3):
-            pix_u.append(pixel[pix, 0])
-        pix_idx = []
-        while len(pix_idx) < 3:
-            min_idx = pix_u.index(min(pix_u))
-            pix_idx.append(min_idx)
-            pix_u[min_idx] = 5000
-        sorted_pix_idx = pix_idx + [idx + 3 for idx in pix_idx]
-        pixel = pixel[sorted_pix_idx]
-        left_hand = False
-        if abs(pixel[1, 0] - pixel[0, 0]) < 3:
-            pixel[1, :] = pixel[0, :]
-            pixel[4, :] = pixel[3, :]
-            left_hand = True
-        if abs(pixel[2, 0] - pixel[1, 0]) < 3:
-            pixel[2, :] = pixel[1, :]
-            pixel[5, :] = pixel[4, :]
+        # cube_xyz_uv为8行5列坐标矩阵(x,y,z,u,v)
+        cube_xyz_uv = np.column_stack((cube_sorted, pixel))
         
-        # STEP3：显示包络立方体近处的相邻两个面及其边界线
-        if pixel[0, 0] != pixel[1, 0] or pixel[1, 0] != pixel[2, 0]:
-            color = COLORS[xx_color_idx[i]]
-            # 显示立方体
-            pt_1 = (pixel[1, 0], pixel[1, 1])
-            pt_2 = (pixel[4, 0], pixel[4, 1])
-            cv2.line(img_numpy, pt_1, pt_2, color, 1)
-            if pixel[0, 0] != pixel[1, 0]:
-                pt_1 = (pixel[0, 0], pixel[0, 1])
-                pt_2 = (pixel[3, 0], pixel[3, 1])
-                cv2.line(img_numpy, pt_1, pt_2, color, 1)
-                pt_1 = (pixel[0, 0], pixel[0, 1])
-                pt_2 = (pixel[1, 0], pixel[1, 1])
-                cv2.line(img_numpy, pt_1, pt_2, color, 1)
-                pt_1 = (pixel[3, 0], pixel[3, 1])
-                pt_2 = (pixel[4, 0], pixel[4, 1])
-                cv2.line(img_numpy, pt_1, pt_2, color, 1)
-            if pixel[1, 0] != pixel[2, 0]:
-                pt_1 = (pixel[2, 0], pixel[2, 1])
-                pt_2 = (pixel[5, 0], pixel[5, 1])
-                cv2.line(img_numpy, pt_1, pt_2, color, 1)
-                pt_1 = (pixel[1, 0], pixel[1, 1])
-                pt_2 = (pixel[2, 0], pixel[2, 1])
-                cv2.line(img_numpy, pt_1, pt_2, color, 1)
-                pt_1 = (pixel[4, 0], pixel[4, 1])
-                pt_2 = (pixel[5, 0], pixel[5, 1])
-                cv2.line(img_numpy, pt_1, pt_2, color, 1)
-            
-            # 补全立方体顶面
-            if pixel[0, 0] != pixel[1, 0] and pixel[1, 0] != pixel[2, 0]:
-                dd = 0
-                far_point_idx = 0
-                for p in range(4, 8):
-                    if cube_raw[p, 0] ** 2 + cube_raw[p, 2] ** 2 >= dd:
-                        dd = cube_raw[p, 0] ** 2 + cube_raw[p, 2] ** 2
-                        far_point_idx = p
-                cube_up = cube_raw[[far_point_idx]]
-                cube_up = np.column_stack((cube_up, np.ones((1, 1))))
-                pixel_up = calib.projection.dot(cube_up.T).T
-                pixel_up = np.true_divide(pixel_up[:, :2], pixel_up[:, [-1]])
-                pixel_up = pixel_up.astype(np.int16)
-                
-                if pixel[4, 1] - pixel[3, 1] >= 3 or pixel[4, 1] - pixel[5, 1] >= 3:
-                    pt_1 = (pixel[3, 0], pixel[3, 1])
-                    pt_2 = (pixel_up[0, 0], pixel_up[0, 1])
-                    cv2.line(img_numpy, pt_1, pt_2, color, 1)
-                    pt_1 = (pixel[5, 0], pixel[5, 1])
-                    pt_2 = (pixel_up[0, 0], pixel_up[0, 1])
-                    cv2.line(img_numpy, pt_1, pt_2, color, 1)
-            
-            # 显示目标检测及跟踪结果
-            font_face = cv2.FONT_HERSHEY_DUPLEX
-            font_scale = 0.4
-            font_thickness = 1
-            
-            if left_hand:
-                x1 = pixel[2, 0]
-                y1 = pixel[2, 1]
-                x2 = pixel[5, 0]
-                y2 = pixel[5, 1]
+        # 计算俯视图中包络矩形各顶点相对坐标原点的极角，范围(0,pi)
+        general_polar_angle = []
+        for cube_i in range(4):
+            # math.atan2(y, x)返回值范围(-pi, pi]
+            general_polar_x = cube_xyz_uv[cube_i, 0]
+            general_polar_z = cube_xyz_uv[cube_i, 2]
+            general_polar_angle_i = math.atan2(general_polar_z, general_polar_x)
+            general_polar_angle.append(general_polar_angle_i)
+        general_polar_angle = general_polar_angle + general_polar_angle
+        # cube_xyz_uv为8行6列坐标矩阵(x,y,z,u,v,polar_angle)
+        cube_xyz_uv_polar = np.column_stack((cube_xyz_uv, np.array(general_polar_angle)))
+        
+        # 判断最小极角的顶点和最大极角的顶点是否为相邻点，只考虑底面的四个顶点
+        # 如果是，则能看到包络立方体的一个侧面，如果不是，则能看到包络立方体的两个侧面
+        cube_polar = cube_xyz_uv_polar[range(4), 5]
+        cube_polar_min_idx = np.where(cube_polar == cube_polar.min())[0][0]
+        cube_polar_max_idx = np.where(cube_polar == cube_polar.max())[0][0]
+        cube_polar_other_idx = []
+        for cube_i in range(4):
+            if cube_i in [cube_polar_min_idx, cube_polar_max_idx]:
+                continue
+            cube_polar_other_idx.append(cube_i)
+        pp = abs(cube_polar_max_idx - cube_polar_min_idx)
+        # uv为8行2列坐标矩阵(u,v)
+        uv = cube_xyz_uv_polar[:, [3, 4]].astype(np.int16)
+        
+        # 如果能看到包络立方体的两个侧面
+        if pp == 2:
+            # 寻找最近的顶点
+            idx_1 = cube_polar_other_idx[0]
+            dd_1 = cube_xyz_uv_polar[idx_1, 0] ** 2 + cube_xyz_uv_polar[idx_1, 2] ** 2
+            idx_2 = cube_polar_other_idx[1]
+            dd_2 = cube_xyz_uv_polar[idx_2, 0] ** 2 + cube_xyz_uv_polar[idx_2, 2] ** 2
+            if dd_1 < dd_2:
+                cube_nearest_idx = idx_1
+                cube_other_idx = idx_2
             else:
-                x1 = pixel[1, 0]
-                y1 = pixel[1, 1]
-                x2 = pixel[4, 0]
-                y2 = pixel[4, 1]
+                cube_nearest_idx = idx_2
+                cube_other_idx = idx_1
+            
+            # 判断是否能看到顶面，通过计算其余顶点在图像中的高度，考虑顶面
+            # polar_min顶点在图像右侧，polar_max顶点在图像左侧，nearest顶点在中间
+            top_can_be_seen = False
+            cube_polar_min_u = uv[cube_polar_min_idx + 4, 0]
+            cube_polar_min_v = uv[cube_polar_min_idx + 4, 1]
+            cube_polar_max_u = uv[cube_polar_max_idx + 4, 0]
+            cube_polar_max_v = uv[cube_polar_max_idx + 4, 1]
+            cube_other_u = uv[cube_other_idx + 4, 0]
+            cube_other_v = uv[cube_other_idx + 4, 1]
+            
+            k = (cube_polar_min_v - cube_polar_max_v) / (cube_polar_min_u - cube_polar_max_u)
+            if cube_other_v < (cube_other_u - cube_polar_max_u) * k + cube_polar_max_v:
+                top_can_be_seen = True
+            
+            # 绘制包络立方体的顶面
+            if top_can_be_seen:
+                pt_1 = (uv[cube_other_idx + 4, 0], uv[cube_other_idx + 4, 1])
+                pt_2 = (uv[cube_polar_max_idx + 4, 0], uv[cube_polar_max_idx + 4, 1])
+                cv2.line(img_numpy, pt_1, pt_2, color, 1)
+                pt_1 = (uv[cube_other_idx + 4, 0], uv[cube_other_idx + 4, 1])
+                pt_2 = (uv[cube_polar_min_idx + 4, 0], uv[cube_polar_min_idx + 4, 1])
+                cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            
+            # 绘制包络立方体的两个侧面
+            pt_1 = (uv[cube_nearest_idx, 0], uv[cube_nearest_idx, 1])
+            pt_2 = (uv[cube_nearest_idx + 4, 0], uv[cube_nearest_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_polar_max_idx, 0], uv[cube_polar_max_idx, 1])
+            pt_2 = (uv[cube_polar_max_idx + 4, 0], uv[cube_polar_max_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_polar_min_idx, 0], uv[cube_polar_min_idx, 1])
+            pt_2 = (uv[cube_polar_min_idx + 4, 0], uv[cube_polar_min_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_nearest_idx, 0], uv[cube_nearest_idx, 1])
+            pt_2 = (uv[cube_polar_max_idx, 0], uv[cube_polar_max_idx, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_nearest_idx, 0], uv[cube_nearest_idx, 1])
+            pt_2 = (uv[cube_polar_min_idx, 0], uv[cube_polar_min_idx, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_nearest_idx + 4, 0], uv[cube_nearest_idx + 4, 1])
+            pt_2 = (uv[cube_polar_max_idx + 4, 0], uv[cube_polar_max_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_nearest_idx + 4, 0], uv[cube_nearest_idx + 4, 1])
+            pt_2 = (uv[cube_polar_min_idx + 4, 0], uv[cube_polar_min_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            
+            # (x1,y1)处显示xx，(x2,y2)处显示xx_class
+            x1 = uv[cube_nearest_idx, 0]
+            y1 = uv[cube_nearest_idx, 1]
+            x2 = uv[cube_nearest_idx + 4, 0]
+            y2 = uv[cube_nearest_idx + 4, 1]
+            
+            text_str = xx_class[i]
+            text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
+            cv2.rectangle(img_numpy, (x2, y2), (x2 + text_w, y2 - text_h - 4), color, -1)
+            # cv2.putText(图像，文字内容，文字左下角所在uv坐标，字体，大小，颜色，字体宽度)
+            cv2.putText(img_numpy, text_str, (x2, y2 - 3), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+            
+            text_lo = "(%.1fm, %.1fm)" % (xx[4 * i, 0], xx[4 * i + 2, 0])
+            text_w_lo, text_h_lo = cv2.getTextSize(text_lo, font_face, font_scale, font_thickness)[0]
+            cv2.rectangle(img_numpy, (x1, y1), (x1 + text_w_lo, y1 + text_h + 4), color, -1)
+            # cv2.putText(图像，文字内容，文字左下角所在uv坐标，字体，大小，颜色，字体宽度)
+            cv2.putText(img_numpy, text_lo, (x1, y1 + text_h + 1), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+            
+            text_ve = "(%.1fm/s, %.1fm/s)" % (xx[4 * i + 1, 0], xx[4 * i + 3, 0])
+            text_w_ve, text_h_ve = cv2.getTextSize(text_ve, font_face, font_scale, font_thickness)[0]
+            cv2.rectangle(img_numpy, (x1, y1 + text_h + 4), (x1 + text_w_ve, y1 + 2 * text_h + 8), color, -1)
+            # cv2.putText(图像，文字内容，文字左下角所在uv坐标，字体，大小，颜色，字体宽度)
+            cv2.putText(img_numpy, text_ve, (x1, y1 + 2 * text_h + 5), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+        
+        # 如果能看到包络立方体的一个侧面
+        else:
+            # 判断是否能看到顶面，通过计算其余顶点在图像中的高度，考虑顶面
+            # polar_min顶点在图像右侧，polar_max顶点在图像左侧
+            top_can_be_seen = False
+            cube_polar_min_u = uv[cube_polar_min_idx + 4, 0]
+            cube_polar_min_v = uv[cube_polar_min_idx + 4, 1]
+            cube_polar_max_u = uv[cube_polar_max_idx + 4, 0]
+            cube_polar_max_v = uv[cube_polar_max_idx + 4, 1]
+            
+            k = (cube_polar_min_v - cube_polar_max_v) / (cube_polar_min_u - cube_polar_max_u)
+            for cube_i in range(2):
+                cube_other_idx = cube_polar_other_idx[cube_i]
+                cube_other_u = uv[cube_other_idx + 4, 0]
+                cube_other_v = uv[cube_other_idx + 4, 1]
+                if cube_other_v < (cube_other_u - cube_polar_max_u) * k + cube_polar_max_v:
+                    top_can_be_seen = True
+            
+            # 绘制包络立方体的顶面
+            if top_can_be_seen:
+                pt_1 = (uv[4, 0], uv[4, 1])
+                pt_2 = (uv[5, 0], uv[5, 1])
+                cv2.line(img_numpy, pt_1, pt_2, color, 1)
+                pt_1 = (uv[5, 0], uv[5, 1])
+                pt_2 = (uv[6, 0], uv[6, 1])
+                cv2.line(img_numpy, pt_1, pt_2, color, 1)
+                pt_1 = (uv[6, 0], uv[6, 1])
+                pt_2 = (uv[7, 0], uv[7, 1])
+                cv2.line(img_numpy, pt_1, pt_2, color, 1)
+                pt_1 = (uv[7, 0], uv[7, 1])
+                pt_2 = (uv[4, 0], uv[4, 1])
+                cv2.line(img_numpy, pt_1, pt_2, color, 1)
+                
+            # 绘制包络立方体的一个侧面
+            pt_1 = (uv[cube_polar_max_idx, 0], uv[cube_polar_max_idx, 1])
+            pt_2 = (uv[cube_polar_max_idx + 4, 0], uv[cube_polar_max_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_polar_min_idx, 0], uv[cube_polar_min_idx, 1])
+            pt_2 = (uv[cube_polar_min_idx + 4, 0], uv[cube_polar_min_idx + 4, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            pt_1 = (uv[cube_polar_max_idx, 0], uv[cube_polar_max_idx, 1])
+            pt_2 = (uv[cube_polar_min_idx, 0], uv[cube_polar_min_idx, 1])
+            cv2.line(img_numpy, pt_1, pt_2, color, 1)
+            
+            # (x1,y1)处显示xx，(x2,y2)处显示xx_class
+            x1 = uv[cube_polar_max_idx, 0]
+            y1 = uv[cube_polar_max_idx, 1]
+            x2 = uv[cube_polar_max_idx + 4, 0]
+            y2 = uv[cube_polar_max_idx + 4, 1]
             
             text_str = xx_class[i]
             text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
