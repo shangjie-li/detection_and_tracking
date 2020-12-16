@@ -62,7 +62,7 @@ ROS package for detection and tracking
    image_topic: /usb_cam/image_rect_color
    lidar_topic: /velodyne_points
    pub_topic: /targets
-   calibration_file_path: /your_path_to/detection_and_tracking/scripts/param.yaml
+   calibration_file_path: /your_path_to/detection_and_tracking/conf/head_camera.yaml
 
    is_limit_mode: True
    the_view_number: 1
