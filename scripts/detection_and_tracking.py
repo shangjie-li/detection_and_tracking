@@ -917,8 +917,6 @@ if __name__ == '__main__':
     print('  Done.')
     
     # 初始化节点
-    # 发布消息队列设为1，订阅消息队列设为1，并保证订阅消息缓冲区足够大
-    # 这样可以实现每次订阅最新的节点消息，避免因队列消息拥挤而导致的雷达点云延迟
     rospy.init_node("dt")
     
     # 动态控制主窗口显示、记录
@@ -997,6 +995,8 @@ if __name__ == '__main__':
     preds = net(batch)
     print('  Done.')
     
+    # 发布消息队列设为1，订阅消息队列设为1，并保证订阅消息缓冲区足够大
+    # 这样可以实现每次订阅最新的节点消息，避免因队列消息拥挤而导致的雷达点云延迟
     rospy.Subscriber(lidar_topic_name, PointCloud2, velodyne_callback, queue_size=1, buff_size=52428800)
     pub = rospy.Publisher(pub_topic_name, BoundingBoxArray, queue_size=1)
     
