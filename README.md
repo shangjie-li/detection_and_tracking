@@ -52,9 +52,25 @@ ROS package for detection and tracking
    RotationAngleY: 0
    RotationAngleZ: 0
    ```
-    - `ProjectionMat`：该3x4矩阵为通过相机内参矩阵标定得到的projection_matrix。
-    - `LidarToCameraMat`：该4x4矩阵为相机与激光雷达坐标系的转换矩阵，左上角3x3为旋转矩阵，右上角3x1为平移矩阵。
-    - `RotationAngleX/Y/Z`：该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据标定效果进行细微调整，单位为度。
+ - 参数含义如下
+   ```Shell
+   ProjectionMat:
+     该3x4矩阵为通过相机内参矩阵标定得到的projection_matrix。
+   LidarToCameraMat:
+     该4x4矩阵为相机与激光雷达坐标系的齐次转换矩阵，左上角3x3为旋转矩阵，右上角3x1为平移矩阵。
+     例如：
+     Translation = [dx, dy, dz]T
+                [0, -1,  0]
+     Rotation = [0,  0, -1]
+                [1,  0,  0]
+     则：
+     LidarToCameraMat = [0, -1,  0, dx]
+                        [0,  0, -1, dy]
+                        [1,  0,  0, dz]
+                        [0,  0,  0,  1]
+   RotationAngleX/Y/Z:
+     该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据标定效果进行细微调整，单位为度。
+   ```
  - 修改目标检测及跟踪算法相关参数`detection_and_tracking/scripts/param.yaml`
    ```Shell
    ...
@@ -108,11 +124,11 @@ ROS package for detection and tracking
 
 ## 附图
    ```Shell
-                               \     /    Initial rotation:
+                               \     /    Rotation:
                                 \ |z/     [0 -1  0]
                                  \|/      [0  0 -1]
                                   █————x  [1  0  0]
-                               forward    => (pi/2, -pi/2, 0) Euler angles
+                               forward    => (pi/2, -pi/2, 0) ZYX Euler angles
                                  cam_1    
   
                                 █████
@@ -120,14 +136,14 @@ ROS package for detection and tracking
    [1  0  0]       |         █    |    █                 [-1 0  0]
    [0  0 -1]  z————█ cam_4  █ y———.z    █  cam_2 █————z  [0  0 -1]
    [0  1  0]                 █         █         |       [0 -1  0]
-   => (pi/2, 0, 0)            ██     ██          |x      => (-pi/2, 0, pi)
+   => (0, 0, pi/2)            ██     ██          |x      => (pi, 0, -pi/2)
                                 █████
                                 lidar
 
                              x————█       [0  1  0]
                                   |       [0  0 -1]
                                   |z      [-1 0  0]
-                                 cam_3    => (pi/2, pi/2, 0)
+                                 cam_3    => (0, pi/2, pi/2)
    ```
 
 
