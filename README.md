@@ -69,7 +69,7 @@ ROS package for detection and tracking
                         [1,  0,  0, dz]
                         [0,  0,  0,  1]
    RotationAngleX/Y/Z:
-     该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据标定效果进行细微调整，单位为度。
+     该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据投影效果进行细微调整，单位为度。
    ```
  - 修改目标检测及跟踪算法相关参数`detection_and_tracking/scripts/param.yaml`
    ```Shell
