@@ -1,0 +1,32 @@
+<!-- -->
+
+<launch>
+
+    <!--points_process-->
+    <node pkg="points_process" type="points_process_node" name="points_process_node" output="screen">
+    
+        <param name="sub_topic" value="/pandar_points"/>
+        <param name="pub_topic" value="/pandar_points_processed"/>
+        
+        <param name="is_limit_mode" value="false"/>
+        <param name="is_clip_mode" value="false"/>
+        <param name="is_filter_mode" value="false"/>
+        <param name="is_downsample_mode" value="true"/>
+        <param name="is_show_points_size" value="false"/>
+        
+        <param name="the_view_number" value="1"/>
+        <param name="the_field_of_view" value="100"/>
+
+        <param name="the_sensor_height" value="2.0"/>
+        <param name="the_view_higher_limit" value="4.0"/>
+        <param name="the_view_lower_limit" value="-4.0"/>
+        <param name="the_min_distance" value="1.5"/>
+        <param name="the_max_distance" value="50.0"/>
+        
+        <param name="the_meank" value="10"/>
+        <param name="the_stdmul" value="1.0"/>
+        <param name="the_leafsize" value="0.1"/>
+        
+    </node>
+
+</launch>
