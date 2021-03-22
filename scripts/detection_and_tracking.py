@@ -905,6 +905,9 @@ if __name__ == '__main__':
     min_distance = rospy.get_param("~min_distance")
     max_distance = rospy.get_param("~max_distance")
     
+    # 初始化目标检测器
+    detector = YolactDetector()
+    
     # 准备图像序列
     print('Waiting for topic...')
     cv_stamps, cv_images = [], []
@@ -912,9 +915,6 @@ if __name__ == '__main__':
     while len(cv_stamps) < 30:
         time.sleep(1)
     print('  Done.\n')
-    
-    # 初始化目标检测器
-    detector = YolactDetector()
     
     # 初始化检测列表、跟踪列表、临时跟踪列表
     objs_detected = []
