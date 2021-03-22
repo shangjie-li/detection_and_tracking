@@ -136,7 +136,10 @@ def test_point_in_polygon_using_pointPolygonTest(x, y, polygon):
     
     # cv2.pointPolygonTest只处理整数数据
     # point <class 'tuple'> 待测试点坐标
-    flag = cv2.pointPolygonTest(polygon, point, False)
+    try:
+        flag = cv2.pointPolygonTest(polygon, point, False)
+    except:
+        flag = False
     
     return flag
     
