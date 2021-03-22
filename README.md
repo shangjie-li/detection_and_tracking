@@ -3,23 +3,21 @@
 ROS package for detection and tracking
 
 ## 安装
- - 需要的环境包括Python3和Pip3以及ros-kinetic-desktop-full
+ - 需要的环境包括Python3和ros-kinetic-desktop-full
  - 安装YOLACT依赖(Pytorch 1.0.1和TorchVision以及一些相关包)
    ```Shell
    sudo pip3 install torch==1.0.1 -f https://download.pytorch.org/whl/cu90/stable
    sudo pip3 install torchvision==0.2.2
-   pip3 install cython
-   pip3 install opencv-python pillow pycocotools matplotlib
+   sudo pip3 install cython
+   sudo pip3 install opencv-python pillow pycocotools matplotlib
    ```
  - 安装其他依赖
    ```Shell
    # scikit-learn机器学习库
-   pip3 install -U scikit-learn
+   sudo pip3 install -U scikit-learn
    # Python3与ROS兼容
-   pip3 install catkin_tools
-   pip3 install rospkg
-   # jsk_recognition_msgs消息类型
-   sudo apt-get install ros-kinetic-jsk-recognition-msgs
+   sudo pip3 install catkin_tools
+   sudo pip3 install rospkg
    # 网络接口数据包捕获函数库
    sudo apt-get install libpcap-dev
    ```
@@ -27,14 +25,14 @@ ROS package for detection and tracking
    ```Shell
    mkdir -p ros_ws/src
    cd ros_ws/src
-   git clone https://github.com/shangjie-li/detection_and_tracking.git
+   git clone https://github.com/shangjie-li/detection_and_tracking.git --recursive
    cd ..
    catkin_make
    ```
- - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`detection_and_tracking/scripts/weights`
+ - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`modules/yolact/weights`
 
 ## 参数配置
- - 编写相机及激光雷达标定参数`detection_and_tracking/conf/head_camera.yaml`
+ - 编写相机与激光雷达标定参数`conf/head_camera.yaml`
    ```Shell
    %YAML:1.0
    ---
@@ -42,7 +40,7 @@ ROS package for detection and tracking
       rows: 3
       cols: 4
       dt: d
-      data: [581.921142578125, 0, 605.0637343471462, 0, 0, 604.7725830078125, 332.6973828462578, 0, 0, 0, 1, 0]
+      data: [920, 0, 348, 0, 0, 934, 177, 0, 0, 0, 1, 0]
    LidarToCameraMat: !!opencv-matrix
       rows: 4
       cols: 4
@@ -55,7 +53,7 @@ ROS package for detection and tracking
  - 参数含义如下
    ```Shell
    ProjectionMat:
-     该3x4矩阵为通过相机内参矩阵标定得到的projection_matrix。
+     该3x4矩阵为通过相机内参标定得到的projection_matrix。
    LidarToCameraMat:
      该4x4矩阵为相机与激光雷达坐标系的齐次转换矩阵，左上角3x3为旋转矩阵，右上角3x1为平移矩阵。
      例如：
@@ -71,51 +69,66 @@ ROS package for detection and tracking
    RotationAngleX/Y/Z:
      该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据投影效果进行细微调整，单位为度。
    ```
- - 修改目标检测及跟踪算法相关参数`detection_and_tracking/scripts/param.yaml`
+ - 修改目标检测及跟踪算法相关参数`conf/param.yaml`
    ```Shell
-   ...
-   
-   image_topic: /usb_cam/image_rect_color
-   lidar_topic: /velodyne_points
-   pub_topic: /targets
-   calibration_file_path: /your_path_to/detection_and_tracking/conf/head_camera.yaml
-
-   is_limit_mode: True
-   the_view_number: 1
-   the_field_of_view: 100
+   print_time:                         True
+   print_objects_info:                 False
+   record_objects_info:                True
   
-   is_clip_mode: True
-   the_sensor_height: 2.0
-   the_view_higher_limit: 4.0
-   the_view_lower_limit: -2.0
-   the_min_distance: 0.5
-   the_max_distance: 100
-   
-   ...
-   
-   jet_color: 25
+   sub_image_topic:                    /usb_cam/image_rect_color
+   sub_point_clouds_topic:             /pandar_points
+   pub_marker_topic:                   /objects
+   calibration_file:                   head_camera.yaml
+  
+   display_image_raw:                  False
+   display_image_masked:               False
+   display_point_clouds_raw:           False
+   display_point_clouds_projected:     False
+  
+   display_detection_result:           False
+   display_segmentation_result:        False
+   display_2d_modeling_result:         True
+   display_3d_modeling_result:         True
+  
+   processing_mode: 'DT' # D - detection, DT - detection and tracking
+   processing_object: 'both' # car, person, both
+  
+   pc_view_crop:                       True
+   area_number:                        1
+   fov_angle:                          100
+  
+   pc_range_crop:                      True
+   sensor_height:                      2.0
+   higher_limit:                       4.0
+   lower_limit:                        -4.0
+   min_distance:                       1.5
+   max_distance:                       50.0
+  
+   blind_update_limit:                 5
+   frame_rate:                         10
+   max_id:                             10000
    ```
-    - `image_topic`指明订阅的相机话题。
-    - `lidar_topic`指明订阅的激光雷达话题。
-    - `pub_topic`指明发布的检测及跟踪的目标话题。
-    - `calibration_file_path`指明标定文件的绝对路径。
-    - `the_view_number`为激光雷达视场区域编号，1为x正向，2为y负向，3为x负向，4为y正向。
-    - `the_field_of_view`为水平视场角，单位度。
-    - `the_sensor_height`指明传感器距地面高度，单位为米。
-    - `the_view_higher_limit`和`the_view_lower_limit`指明期望的点云相对地面的限制高度，单位为米。
-    - `the_min_distance`和`the_max_distance`指明期望的点云相对传感器的限制距离，单位为米。
-    - `jet_color`与点云成像颜色有关。
+    - `sub_image_topic`指明订阅的图像话题。
+    - `sub_point_clouds_topic`指明订阅的点云话题。
+    - `pub_marker_topic`指明发布的话题。
+    - `calibration_file`指明标定文件的名称。
+    - `area_number`为激光雷达视场区域编号，1为x正向，2为y负向，3为x负向，4为y正向。
+    - `fov_angle`为相机水平视场角，单位度。
+    - `sensor_height`指明激光雷达距地面高度，单位为米。
+    - `higher_limit`和`lower_limit`指明期望的点云相对地面的限制高度，单位为米。
+    - `min_distance`和`max_distance`指明期望的点云相对激光雷达的限制距离，单位为米。
 
 ## 运行
  - 加载参数文件至ROS参数服务器
    ```Shell
-   cd detection_and_tracking/scripts
+   cd conf
    rosparam load param.yaml
  - 启动`detection_and_tracking`
    ```Shell
+   cd scripts
    python3 detection_and_tracking.py
    ```
- - 检测及跟踪的目标发布至话题`/targets`，类型为`BoundingBoxArray`，可以通过`rviz`查看
+ - 发布的话题类型为`MarkerArray`，可以通过`rviz`查看
  - 如果运行时发生下列错误
    ```Shell
    RuntimeError: /pytorch/torch/csrc/jit/fuser/cuda/fused_kernel.cpp:137: a PTX JIT compilation failed

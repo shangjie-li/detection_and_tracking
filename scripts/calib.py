@@ -5,13 +5,10 @@ import math
 import cv2
 
 class Calib:
-    def __init__(self):
-        print("Calib created.")
-    
-    def loadcalib(self, file_name):
-        fs = cv2.FileStorage(file_name, cv2.FileStorage_READ)
+    def __init__(self, file_path, print_mat=True):
+        fs = cv2.FileStorage(file_path, cv2.FileStorage_READ)
         if(not fs.isOpened()):
-            print("No file: %s" %file_name)
+            print("No file: %s" %file_path)
         
         tr_raw = fs.getNode('LidarToCameraMat').mat()
         # x轴旋转矩阵(gamma) y轴旋转矩阵(beta) z轴旋转矩阵(alpha)
@@ -31,8 +28,10 @@ class Calib:
                        [0, 0, 1, 0],
                        [0, 0, 0, 1],],np.float32)
         tr = rz.dot(ry.dot(rx.dot(tr_raw)))
-        print("lidar_to_cam:")
-        print(tr)
-        self.lidar_to_cam = tr
-        self.lidar_to_img = fs.getNode('ProjectionMat').mat().dot(tr)
-        self.projection = fs.getNode('ProjectionMat').mat()
+        if print_mat:
+            print("transformation_lidar_to_camera:")
+            print(tr)
+            print()
+        self.transformation_lidar_to_camera = tr
+        self.projection_l2i = fs.getNode('ProjectionMat').mat().dot(tr)
+        self.projection_c2i = fs.getNode('ProjectionMat').mat()

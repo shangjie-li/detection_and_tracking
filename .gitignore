@@ -1,8 +1,4 @@
-scripts/weights
+modules/yolact/weights
 scripts/__pycache__
-scripts/data/__pycache__
-scripts/layers/__pycache__
-scripts/layers/functions/__pycache__
-scripts/layers/modules/__pycache__
-scripts/utils/__pycache__
 scripts/*.mp4
+scripts/*.txt
