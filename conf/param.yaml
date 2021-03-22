@@ -4,7 +4,7 @@ dt:
   record_objects_info:                True
   
   sub_image_topic:                    /usb_cam/image_rect_color
-  sub_point_clouds_topic:             /pandar_points
+  sub_point_clouds_topic:             /pandar_points_processed
   pub_marker_topic:                   /objects
   calibration_file:                   head_camera.yaml
   
