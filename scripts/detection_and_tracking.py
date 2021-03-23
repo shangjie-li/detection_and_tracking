@@ -226,7 +226,7 @@ def draw_object_model_from_main_view(img, objs, mat, thickness=1):
         
         height = objs[i].h
         color = objs[i].color
-        img = draw_3d_model(img, polygon, height, mat, color, thickness)
+        img, flag = draw_3d_model(img, polygon, height, mat, color, thickness)
         
         # 选取三维边界框中的顶点，绘制目标信息
         pdds = []
@@ -244,7 +244,8 @@ def draw_object_model_from_main_view(img, objs, mat, thickness=1):
         xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2], 1]])
         _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
         
-        img = draw_object_info(img, objs[i].classname, objs[i].number, objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color)
+        if flag:
+            img = draw_object_info(img, objs[i].classname, objs[i].number, objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color)
     
     return img
 
