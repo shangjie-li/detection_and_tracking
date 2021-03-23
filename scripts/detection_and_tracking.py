@@ -738,6 +738,9 @@ def point_clouds_callback(pc):
             ys = objs[i].ys
             zs = objs[i].zs
             window_segmentation_result = draw_point_clouds_from_main_view(window_segmentation_result, xs, ys, zs, calib.projection_l2i, jc, circle_mode=True, radius=2)
+    if display_calibration_result:
+        window_calibration_result = cv_image.copy()
+        window_calibration_result = draw_point_clouds_from_main_view(window_calibration_result, xyz[:, 0], xyz[:, 1], xyz[:, 2], calib.projection_l2i, jc, circle_mode=True, radius=2)
     if display_2d_modeling_result:
         window_2d_modeling_result = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_2d_modeling_result = draw_point_clouds_from_bev_view(window_2d_modeling_result, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=False, circle_mode=False, color=(96, 96, 96), radius=1)
@@ -773,6 +776,10 @@ def point_clouds_callback(pc):
         cv2.namedWindow("segmentation_result", cv2.WINDOW_NORMAL)
         cv2.imshow("segmentation_result", window_segmentation_result)
         video_segmentation_result.write(window_segmentation_result)
+    if display_calibration_result:
+        cv2.namedWindow("calibration_result", cv2.WINDOW_NORMAL)
+        cv2.imshow("calibration_result", window_calibration_result)
+        video_calibration_result.write(window_calibration_result)
     if display_2d_modeling_result:
         cv2.namedWindow("2d_modeling_result", cv2.WINDOW_NORMAL)
         cv2.imshow("2d_modeling_result", window_2d_modeling_result)
@@ -816,6 +823,10 @@ def point_clouds_callback(pc):
             cv2.destroyWindow("segmentation_result")
             video_segmentation_result.release()
             print("Save video of segmentation_result.")
+        if display_calibration_result:
+            cv2.destroyWindow("calibration_result")
+            video_calibration_result.release()
+            print("Save video of calibration_result.")
         if display_2d_modeling_result:
             cv2.destroyWindow("2d_modeling_result")
             video_2d_modeling_result.release()
@@ -960,6 +971,7 @@ if __name__ == '__main__':
     
     display_detection_result = rospy.get_param("~display_detection_result")
     display_segmentation_result = rospy.get_param("~display_segmentation_result")
+    display_calibration_result = rospy.get_param("~display_calibration_result")
     display_2d_modeling_result = rospy.get_param("~display_2d_modeling_result")
     display_3d_modeling_result = rospy.get_param("~display_3d_modeling_result")
     
@@ -991,6 +1003,10 @@ if __name__ == '__main__':
         video_path = 'segmentation_result.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
         video_segmentation_result = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
+    if display_calibration_result:
+        video_path = 'calibration_result.mp4'
+        video_format = cv2.VideoWriter_fourcc(*"mp4v")
+        video_calibration_result = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
     if display_2d_modeling_result:
         video_path = '2d_modeling_result.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
