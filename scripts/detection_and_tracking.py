@@ -165,7 +165,7 @@ def draw_point_clouds_from_bev_view(img, xs, ys, center_alignment=True, circle_m
             
     return img
 
-def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, color):
+def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, color, display_class=True, display_id=True, display_xx=True):
     # 功能：在图像上绘制目标信息
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      classname <class 'str'> 类别
@@ -184,24 +184,32 @@ def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, col
     font_scale = 0.4
     font_thickness = 1
     
-    text_str = classname + ' ' + str(number)
-    text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
-    cv2.rectangle(img, (u1, v1), (u1 + text_w, v1 - text_h - 4), color, -1)
-    cv2.putText(img, text_str, (u1, v1 - 3), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+    if display_class or display_id:
+        if display_class and display_id:
+            text_str = classname + ' ' + str(number)
+        elif display_class and not display_id:
+            text_str = classname
+        elif not display_class and display_id:
+            text_str = str(number)
+        
+        text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u1, v1), (u1 + text_w, v1 - text_h - 4), color, -1)
+        cv2.putText(img, text_str, (u1, v1 - 3), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
     
-    text_lo = '(%.1fm, %.1fm)' % (xref, yref)
-    text_w_lo, _ = cv2.getTextSize(text_lo, font_face, font_scale, font_thickness)[0]
-    cv2.rectangle(img, (u2, v2), (u2 + text_w_lo, v2 + text_h + 4), color, -1)
-    cv2.putText(img, text_lo, (u2, v2 + text_h + 1), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
-    
-    text_ve = '(%.1fm/s, %.1fm/s)' % (vx, vy)
-    text_w_ve, _ = cv2.getTextSize(text_ve, font_face, font_scale, font_thickness)[0]
-    cv2.rectangle(img, (u2, v2 + text_h + 4), (u2 + text_w_ve, v2 + 2 * text_h + 8), color, -1)
-    cv2.putText(img, text_ve, (u2, v2 + 2 * text_h + 5), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+    if display_xx:
+        text_lo = '(%.1fm, %.1fm)' % (xref, yref)
+        text_w_lo, _ = cv2.getTextSize(text_lo, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u2, v2), (u2 + text_w_lo, v2 + text_h + 4), color, -1)
+        cv2.putText(img, text_lo, (u2, v2 + text_h + 1), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+        
+        text_ve = '(%.1fm/s, %.1fm/s)' % (vx, vy)
+        text_w_ve, _ = cv2.getTextSize(text_ve, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u2, v2 + text_h + 4), (u2 + text_w_ve, v2 + 2 * text_h + 8), color, -1)
+        cv2.putText(img, text_ve, (u2, v2 + 2 * text_h + 5), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
     
     return img
 
-def draw_object_model_from_main_view(img, objs, mat, thickness=1):
+def draw_object_model_from_main_view(img, objs, mat, display_info, thickness=1):
     # 功能：在图像上绘制目标轮廓
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      objs <class 'list'> 存储目标检测结果
@@ -244,8 +252,10 @@ def draw_object_model_from_main_view(img, objs, mat, thickness=1):
         xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2], 1]])
         _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
         
-        if flag:
-            img = draw_object_info(img, objs[i].classname, objs[i].number, objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color)
+        if flag and display_info:
+            img = draw_object_info(img, objs[i].classname, objs[i].number,
+             objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
+              display_class=True, display_id=True, display_xx=False)
     
     return img
 
@@ -747,7 +757,7 @@ def point_clouds_callback(pc):
         window_2d_modeling_result = draw_object_model_from_bev_view(window_2d_modeling_result, objs, display_obj_pc, display_gate, center_alignment=False, circle_mode=False, thickness=1)
     if display_3d_modeling_result:
         window_3d_modeling_result = cv_image.copy()
-        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, thickness=1)
+        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, display_info=True, thickness=1)
     time_display = time.time() - time_start
     
     # 显示与保存
