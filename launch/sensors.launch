@@ -46,7 +46,7 @@
 	</node>
 	
 	<!--rviz-->
-	<node name="rviz" pkg="rviz" type="rviz"  args="-d $(find hesai_lidar)/rviz/pandar.rviz" />
+	<node name="rviz" pkg="rviz" type="rviz"  args="pandar.rviz" />
 
 </launch>
 
