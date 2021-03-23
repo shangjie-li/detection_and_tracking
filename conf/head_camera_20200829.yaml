@@ -1,0 +1,17 @@
+%YAML:1.0
+---
+ProjectionMat: !!opencv-matrix
+   rows: 3
+   cols: 4
+   dt: d
+   data: [920, 0, 348, 0, 0, 934, 177, 0, 0, 0, 1, 0]
+LidarToCameraMat: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [0, -1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+RotationAngleX: -1
+RotationAngleY: -0.5
+RotationAngleZ: 0
+
+
