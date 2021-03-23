@@ -6,7 +6,7 @@ dt:
   sub_image_topic:                    /usb_cam/image_raw
   sub_point_clouds_topic:             /pandar_points_processed
   pub_marker_topic:                   /objects
-  calibration_file:                   head_camera.yaml
+  calibration_file:                   head_camera_seucat.yaml
   
   display_image_raw:                  False
   display_image_masked:               False
@@ -15,7 +15,8 @@ dt:
   
   display_detection_result:           False
   display_segmentation_result:        False
-  display_2d_modeling_result:         True
+  display_calibration_result:         False
+  display_2d_modeling_result:         False
   display_3d_modeling_result:         True
   
   processing_mode: 'DT' # D - detection, DT - detection and tracking
