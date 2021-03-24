@@ -14,7 +14,7 @@ dt:
   display_point_clouds_projected:     False
   
   display_detection_result:           False
-  display_segmentation_result:        False
+  display_segmentation_result:        True
   display_calibration_result:         False
   display_2d_modeling_result:         False
   display_3d_modeling_result:         True
