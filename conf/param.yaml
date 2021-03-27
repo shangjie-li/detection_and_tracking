@@ -15,12 +15,12 @@ dt:
   
   display_detection_result:           False
   display_segmentation_result:        True
-  display_calibration_result:         False
-  display_2d_modeling_result:         False
+  display_calibration_result:         True
+  display_2d_modeling_result:         True
   display_3d_modeling_result:         True
   
   processing_mode: 'DT' # D - detection, DT - detection and tracking
-  processing_object: 'both' # car, person, both
+  processing_object: 'car' # car, person, both
   
   pc_view_crop:                       False
   area_number:                        1
