@@ -141,7 +141,7 @@ ROS package for detection and tracking
                                 \ |z/     [0 -1  0]
                                  \|/      [0  0 -1]
                                   █————x  [1  0  0]
-                               forward    => (pi/2, -pi/2, 0) ZYX Euler angles
+                               forward    
                                  cam_1    
   
                                 █████
@@ -149,14 +149,14 @@ ROS package for detection and tracking
    [1  0  0]       |         █    |    █                 [-1 0  0]
    [0  0 -1]  z————█ cam_4  █ y———.z    █  cam_2 █————z  [0  0 -1]
    [0  1  0]                 █         █         |       [0 -1  0]
-   => (0, 0, pi/2)            ██     ██          |x      => (pi, 0, -pi/2)
+                              ██     ██          |x      
                                 █████
                                 lidar
 
                              x————█       [0  1  0]
                                   |       [0  0 -1]
                                   |z      [-1 0  0]
-                                 cam_3    => (0, pi/2, pi/2)
+                                 cam_3    
    ```
 
 
