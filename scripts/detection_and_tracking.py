@@ -209,7 +209,7 @@ def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, col
     
     return img
 
-def draw_object_model_from_main_view(img, objs, mat, display_info, thickness=1):
+def draw_object_model_from_main_view(img, objs, mat, display_class, display_id, display_state, thickness=1):
     # 功能：在图像上绘制目标轮廓
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      objs <class 'list'> 存储目标检测结果
@@ -252,10 +252,12 @@ def draw_object_model_from_main_view(img, objs, mat, display_info, thickness=1):
         xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2], 1]])
         _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
         
+        display_info = False
+        if display_class or display_id or display_state: display_info = True
         if flag and display_info:
             img = draw_object_info(img, objs[i].classname, objs[i].number,
              objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
-              display_class=True, display_id=True, display_xx=False)
+              display_class, display_id, display_state)
     
     return img
 
@@ -542,7 +544,7 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
     
     return number, objs_tracked, objs_temp
 
-def publish_marker_msg(pub, header, frame_rate, objs):
+def publish_marker_msg(pub, header, frame_rate, objs, random_number=True):
     markerarray = MarkerArray()
     
     num = len(objs)
@@ -556,7 +558,10 @@ def publish_marker_msg(pub, header, frame_rate, objs):
         # 设置该标记的命名空间和ID，ID应该是独一无二的
         # 具有相同命名空间和ID的标记将会覆盖前一个
         marker.ns = obj.classname
-        marker.id = i
+        if random_number:
+            marker.id = i
+        else:
+            marker.id = obj.number
         
         # 设置标记类型
         if obj.has_orientation:
@@ -619,6 +624,8 @@ def point_clouds_callback(pc):
     global number
     global frame
     frame += 1
+    
+    global display_obj_pc, display_gate, display_class, display_id, display_state
     
     # 相机与激光雷达消息同步
     global cv_stamps
@@ -699,17 +706,17 @@ def point_clouds_callback(pc):
     # 模式切换
     if processing_mode == 'D':
         objs = objs
-        display_obj_pc = True
         display_gate = False
+        random_number = True
     elif processing_mode == 'DT':
         objs = objs_tracked
         display_obj_pc = False
-        display_gate = True
+        random_number = False
     else:
         raise Exception('processing_mode is not "D" or "DT".')
     
     # 输出结果
-    publish_marker_msg(pub_marker, pc.header, frame_rate, objs)
+    publish_marker_msg(pub_marker, pc.header, frame_rate, objs, random_number)
     
     # 可视化
     time_start = time.time()
@@ -757,7 +764,7 @@ def point_clouds_callback(pc):
         window_2d_modeling_result = draw_object_model_from_bev_view(window_2d_modeling_result, objs, display_obj_pc, display_gate, center_alignment=False, circle_mode=False, thickness=1)
     if display_3d_modeling_result:
         window_3d_modeling_result = cv_image.copy()
-        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, display_info=True, thickness=1)
+        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, display_class, display_id, display_state, thickness=2)
     time_display = time.time() - time_start
     
     # 显示与保存
@@ -880,9 +887,14 @@ def point_clouds_callback(pc):
     if record_objects_info:
         num = len(objs)
         for j in range(num):
-            with open(filename, 'a') as fob:
+            with open(filename_objects_info, 'a') as fob:
                 fob.write('frame:%d id:%d x:%.3f vx:%.3f y:%.3f vy:%.3f' % (frame, objs[j].number, objs[j].xref, objs[j].vx, objs[j].yref, objs[j].vy))
                 fob.write('\n')
+    
+    if record_time:
+        with open(filename_time, 'a') as fob:
+            fob.write('frame:%d amount:%d detection:%.3f fusion:%.3f tracking:%.3f display:%.3f all:%.3f' % (frame, len(objs), time_detection, time_fusion, time_tracking, time_display, time_all))
+            fob.write('\n')
 
 if __name__ == '__main__':
     # 初始化节点
@@ -895,8 +907,16 @@ if __name__ == '__main__':
     # 记录结果
     record_objects_info = rospy.get_param("~record_objects_info")
     if record_objects_info:
-        filename = 'result.txt'
-        with open(filename, 'w') as fob:
+        filename_objects_info = 'result.txt'
+        with open(filename_objects_info, 'w') as fob:
+            fob.seek(0)
+            fob.truncate()
+    
+    # 记录耗时
+    record_time = rospy.get_param("~record_time")
+    if record_time:
+        filename_time = 'time_cost.txt'
+        with open(filename_time, 'w') as fob:
             fob.seek(0)
             fob.truncate()
     
@@ -982,8 +1002,15 @@ if __name__ == '__main__':
     display_detection_result = rospy.get_param("~display_detection_result")
     display_segmentation_result = rospy.get_param("~display_segmentation_result")
     display_calibration_result = rospy.get_param("~display_calibration_result")
+    
     display_2d_modeling_result = rospy.get_param("~display_2d_modeling_result")
+    display_obj_pc = rospy.get_param("~display_obj_pc")
+    display_gate = rospy.get_param("~display_gate")
+    
     display_3d_modeling_result = rospy.get_param("~display_3d_modeling_result")
+    display_class = rospy.get_param("~display_class")
+    display_id = rospy.get_param("~display_id")
+    display_state = rospy.get_param("~display_state")
     
     window_height = cv_images[0].shape[0]
     window_width = cv_images[0].shape[1]
