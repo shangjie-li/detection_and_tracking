@@ -16,7 +16,7 @@ dt:
   
   display_detection_result:           False
   display_segmentation_result:        False
-  display_calibration_result:         True
+  display_calibration_result:         False
   
   display_2d_modeling_result:         False
   display_obj_pc:                     False
@@ -24,8 +24,8 @@ dt:
   
   display_3d_modeling_result:         True
   display_frame:                      False
-  display_class:                      False
-  display_id:                         False
+  display_class:                      True
+  display_id:                         True
   display_state:                      False
   
   processing_mode: 'DT' # D - detection, DT - detection and tracking
@@ -42,6 +42,6 @@ dt:
   min_distance:                       1.5
   max_distance:                       50.0
   
-  blind_update_limit:                 5
+  blind_update_limit:                 1
   frame_rate:                         10
   max_id:                             10000
