@@ -23,6 +23,7 @@ dt:
   display_gate:                       False
   
   display_3d_modeling_result:         True
+  display_frame:                      False
   display_class:                      False
   display_id:                         False
   display_state:                      False

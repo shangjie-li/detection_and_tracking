@@ -209,7 +209,7 @@ def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, col
     
     return img
 
-def draw_object_model_from_main_view(img, objs, mat, display_class, display_id, display_state, thickness=1):
+def draw_object_model_from_main_view(img, objs, mat, frame, display_frame, display_class, display_id, display_state, thickness=1):
     # 功能：在图像上绘制目标轮廓
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      objs <class 'list'> 存储目标检测结果
@@ -258,6 +258,12 @@ def draw_object_model_from_main_view(img, objs, mat, display_class, display_id, 
             img = draw_object_info(img, objs[i].classname, objs[i].number,
              objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
               display_class, display_id, display_state)
+    
+    font_face = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = 0.4
+    font_thickness = 1
+    if display_frame:
+        cv2.putText(img, str(frame), (10, 20), font_face, font_scale, (0, 0, 255), font_thickness, cv2.LINE_AA)
     
     return img
 
@@ -724,9 +730,12 @@ def point_clouds_callback(pc):
         window_image_raw = cv_image.copy()
     if display_image_masked:
         window_image_masked = cv_image.copy()
-        for i in range(masks.shape[0]):
-            mask = masks[i]
-            color = COLORS[i % len(COLORS)]
+        num = len(objs)
+        for i in range(num):
+            if objs[i].tracker_blind_update > 0:
+                continue
+            mask = objs[i].mask
+            color = objs[i].color
             window_image_masked = draw_mask(window_image_masked, mask, color)
     if display_point_clouds_raw:
         window_point_clouds_raw = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
@@ -748,8 +757,10 @@ def point_clouds_callback(pc):
         window_segmentation_result = cv_image.copy()
         num = len(objs)
         for i in range(num):
+            if objs[i].tracker_blind_update > 0:
+                continue
             mask = objs[i].mask
-            color = COLORS[i % len(COLORS)]
+            color = objs[i].color
             window_segmentation_result = draw_mask(window_segmentation_result, mask, color)
             xs = objs[i].xs
             ys = objs[i].ys
@@ -758,13 +769,14 @@ def point_clouds_callback(pc):
     if display_calibration_result:
         window_calibration_result = cv_image.copy()
         window_calibration_result = draw_point_clouds_from_main_view(window_calibration_result, xyz[:, 0], xyz[:, 1], xyz[:, 2], calib.projection_l2i, jc, circle_mode=True, radius=1)
+    
     if display_2d_modeling_result:
         window_2d_modeling_result = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_2d_modeling_result = draw_point_clouds_from_bev_view(window_2d_modeling_result, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=False, circle_mode=False, color=(96, 96, 96), radius=1)
         window_2d_modeling_result = draw_object_model_from_bev_view(window_2d_modeling_result, objs, display_obj_pc, display_gate, center_alignment=False, circle_mode=False, thickness=1)
     if display_3d_modeling_result:
         window_3d_modeling_result = cv_image.copy()
-        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, display_class, display_id, display_state, thickness=2)
+        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, frame, display_frame, display_class, display_id, display_state, thickness=2)
     time_display = time.time() - time_start
     
     # 显示与保存
@@ -1008,6 +1020,7 @@ if __name__ == '__main__':
     display_gate = rospy.get_param("~display_gate")
     
     display_3d_modeling_result = rospy.get_param("~display_3d_modeling_result")
+    display_frame = rospy.get_param("~display_frame")
     display_class = rospy.get_param("~display_class")
     display_id = rospy.get_param("~display_id")
     display_state = rospy.get_param("~display_state")
