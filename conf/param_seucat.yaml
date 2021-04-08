@@ -10,12 +10,12 @@ dt:
   calibration_file:                   head_camera_seucat.yaml
   
   display_image_raw:                  False
-  display_image_masked:               False
+  display_image_segmented:            False
   display_point_clouds_raw:           False
   display_point_clouds_projected:     False
   
-  display_detection_result:           False
   display_segmentation_result:        False
+  display_fusion_result:              False
   display_calibration_result:         False
   
   display_2d_modeling_result:         False
