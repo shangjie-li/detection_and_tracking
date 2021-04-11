@@ -371,9 +371,6 @@ def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
                 obj = Object()
                 
                 # 提取相关参数
-                xref, yref = find_nearest_point(xsc, ysc)
-                obj.xref = float(xref)
-                obj.yref = float(yref)
                 obj.mask, obj.classname, obj.score, obj.box = masks[i], str(classes[i]), float(scores[i]), boxes[i]
                 obj.xs, obj.ys, obj.zs = xsc, ysc, zsc
                 
@@ -386,6 +383,9 @@ def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
                     obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cylinder(xsc, ysc, zsc)
                     obj.l = min(obj.l, 1.0)
                     obj.w = min(obj.w, 1.0)
+                
+                obj.xref = obj.x0
+                obj.yref = obj.y0
                 
                 objs.append(obj)
                 
@@ -414,28 +414,16 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             # 匹配成功，预测并更新
             objs_tracked[j].tracker.predict()
             objs_tracked[j].tracker.update(objs_detected[idx].xref, objs_detected[idx].yref)
-            objs_tracked[j].tracker_x0.predict()
-            objs_tracked[j].tracker_x0.update(objs_detected[idx].x0)
-            objs_tracked[j].tracker_y0.predict()
-            objs_tracked[j].tracker_y0.update(objs_detected[idx].y0)
-            objs_tracked[j].tracker_z0.predict()
-            objs_tracked[j].tracker_z0.update(objs_detected[idx].z0)
             objs_tracked[j].tracker_l.predict()
             objs_tracked[j].tracker_l.update(objs_detected[idx].l)
             objs_tracked[j].tracker_w.predict()
             objs_tracked[j].tracker_w.update(objs_detected[idx].w)
-            objs_tracked[j].tracker_h.predict()
-            objs_tracked[j].tracker_h.update(objs_detected[idx].h)
             
             # 继承检测结果中的参数
             obj = objs_detected[idx]
             obj.tracker = objs_tracked[j].tracker
-            obj.tracker_x0 = objs_tracked[j].tracker_x0
-            obj.tracker_y0 = objs_tracked[j].tracker_y0
-            obj.tracker_z0 = objs_tracked[j].tracker_z0
             obj.tracker_l = objs_tracked[j].tracker_l
             obj.tracker_w = objs_tracked[j].tracker_w
-            obj.tracker_h = objs_tracked[j].tracker_h
             obj.number = objs_tracked[j].number
             obj.color = objs_tracked[j].color
             objs_tracked[j] = obj
@@ -446,9 +434,6 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
         else:
             # 匹配不成功，只预测
             objs_tracked[j].tracker.predict()
-            objs_tracked[j].tracker_x0.predict()
-            objs_tracked[j].tracker_y0.predict()
-            objs_tracked[j].tracker_z0.predict()
             
             # 修改更新中断次数
             objs_tracked[j].tracker_blind_update += 1
@@ -459,16 +444,13 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
         objs_tracked[j].yref = objs_tracked[j].tracker.xx[2, 0]
         objs_tracked[j].vy = objs_tracked[j].tracker.xx[3, 0]
         
-        objs_tracked[j].x0 = objs_tracked[j].tracker_x0.xx[0, 0]
-        objs_tracked[j].y0 = objs_tracked[j].tracker_y0.xx[0, 0]
-        objs_tracked[j].z0 = objs_tracked[j].tracker_z0.xx[0, 0]
+        objs_tracked[j].x0 = objs_tracked[j].xref
+        objs_tracked[j].y0 = objs_tracked[j].yref
         objs_tracked[j].l = objs_tracked[j].tracker_l.xx[0, 0]
         objs_tracked[j].w = objs_tracked[j].tracker_w.xx[0, 0]
-        objs_tracked[j].h = objs_tracked[j].tracker_h.xx[0, 0]
         
         if objs_tracked[j].l < 0: objs_tracked[j].l = 0
         if objs_tracked[j].w < 0: objs_tracked[j].w = 0
-        if objs_tracked[j].h < 0: objs_tracked[j].h = 0
         
     # 删除长时间未跟踪的目标
     objs_remained = []
@@ -507,12 +489,8 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             # 继承检测结果中的参数
             obj = objs_detected[idx]
             obj.tracker = objs_temp[j].tracker
-            obj.tracker_x0 = objs_temp[j].tracker_x0
-            obj.tracker_y0 = objs_temp[j].tracker_y0
-            obj.tracker_z0 = objs_temp[j].tracker_z0
             obj.tracker_l = objs_temp[j].tracker_l
             obj.tracker_w = objs_temp[j].tracker_w
-            obj.tracker_h = objs_temp[j].tracker_h
             objs_temp[j] = obj
             
             # 对跟踪的位置、速度重新赋值
@@ -520,8 +498,6 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             objs_temp[j].tracker.xx[1, 0] = vx
             objs_temp[j].tracker.xx[2, 0] = zy
             objs_temp[j].tracker.xx[3, 0] = vy
-            objs_temp[j].tracker_x0.xx[1, 0] = vx
-            objs_temp[j].tracker_y0.xx[1, 0] = vy
             
             objs_temp[j].xref = objs_temp[j].tracker.xx[0, 0]
             objs_temp[j].vx = objs_temp[j].tracker.xx[1, 0]
@@ -546,12 +522,8 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
           gate_threshold=400)
         
         # 初始化卡尔曼滤波器，对相关参数进行平滑
-        objs_temp[j].tracker_x0 = KalmanFilter2D(1 / frame_rate, objs_temp[j].x0, 0, sigma_ax=1, sigma_ox=0.1)
-        objs_temp[j].tracker_y0 = KalmanFilter2D(1 / frame_rate, objs_temp[j].y0, 0, sigma_ax=1, sigma_ox=0.1)
-        objs_temp[j].tracker_z0 = KalmanFilter2D(1 / frame_rate, objs_temp[j].z0, 0, sigma_ax=1, sigma_ox=0.1)
         objs_temp[j].tracker_l = KalmanFilter2D(1 / frame_rate, objs_temp[j].l, 0, sigma_ax=1, sigma_ox=0.1)
         objs_temp[j].tracker_w = KalmanFilter2D(1 / frame_rate, objs_temp[j].w, 0, sigma_ax=1, sigma_ox=0.1)
-        objs_temp[j].tracker_h = KalmanFilter2D(1 / frame_rate, objs_temp[j].h, 0, sigma_ax=1, sigma_ox=0.1)
     
     return number, objs_tracked, objs_temp
 
