@@ -523,6 +523,11 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             objs_temp[j].tracker_x0.xx[1, 0] = vx
             objs_temp[j].tracker_y0.xx[1, 0] = vy
             
+            objs_temp[j].xref = objs_temp[j].tracker.xx[0, 0]
+            objs_temp[j].vx = objs_temp[j].tracker.xx[1, 0]
+            objs_temp[j].yref = objs_temp[j].tracker.xx[2, 0]
+            objs_temp[j].vy = objs_temp[j].tracker.xx[3, 0]
+            
             # 增加ID和颜色等属性
             number += 1
             objs_temp[j].number = number
@@ -908,7 +913,8 @@ def point_clouds_callback(pc):
         num = len(objs)
         for j in range(num):
             with open(filename_objects_info, 'a') as fob:
-                fob.write('frame:%d id:%d x:%.3f vx:%.3f y:%.3f vy:%.3f' % (frame, objs[j].number, objs[j].xref, objs[j].vx, objs[j].yref, objs[j].vy))
+                fob.write('time_stamp:%.3f frame:%d id:%d x:%.3f vx:%.3f y:%.3f vy:%.3f x0:%.3f y0:%.3f z0:%.3f l:%.3f w:%.3f h:%.3f phi:%.3f' % (
+                    lidar_stamp, frame, objs[j].number, objs[j].xref, objs[j].vx, objs[j].yref, objs[j].vy, objs[j].x0, objs[j].y0, objs[j].z0, objs[j].l, objs[j].w, objs[j].h, objs[j].phi))
                 fob.write('\n')
     
     if record_time:
