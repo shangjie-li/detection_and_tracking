@@ -18,8 +18,6 @@ ROS package for detection and tracking
    # Python3与ROS兼容
    sudo pip3 install catkin_tools
    sudo pip3 install rospkg
-   # 网络接口数据包捕获函数库
-   sudo apt-get install libpcap-dev
    ```
  - 建立工作空间并拷贝这个库
    ```Shell
@@ -32,7 +30,7 @@ ROS package for detection and tracking
  - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`modules/yolact/weights`
 
 ## 参数配置
- - 编写相机与激光雷达标定参数`conf/head_camera.yaml`
+ - 编写相机与激光雷达标定参数`detection_and_tracking/conf/head_camera.yaml`
    ```Shell
    %YAML:1.0
    ---
@@ -69,48 +67,58 @@ ROS package for detection and tracking
    RotationAngleX/Y/Z:
      该值是对LidarToCameraMat矩阵进行修正的旋转角度，初始应设置为0，之后根据投影效果进行细微调整，单位为度。
    ```
- - 修改目标检测及跟踪算法相关参数`conf/param.yaml`
+ - 修改目标检测及跟踪算法相关参数`detection_and_tracking/conf/param.yaml`
    ```Shell
    print_time:                         True
    print_objects_info:                 False
    record_objects_info:                True
+   record_time:                        True
   
-   sub_image_topic:                    /usb_cam/image_rect_color
-   sub_point_clouds_topic:             /pandar_points
+   sub_image_topic:                    /usb_cam/image_raw
+   sub_point_clouds_topic:             /pandar_points_processed
    pub_marker_topic:                   /objects
-   calibration_file:                   head_camera.yaml
+   calibration_file:                   head_camera_20210323.yaml
   
    display_image_raw:                  False
-   display_image_masked:               False
+   display_image_segmented:            True
    display_point_clouds_raw:           False
-   display_point_clouds_projected:     False
+   display_point_clouds_projected:     True
   
-   display_detection_result:           False
    display_segmentation_result:        False
-   display_2d_modeling_result:         True
+   display_fusion_result:              True
+   display_calibration_result:         False
+  
+   display_2d_modeling_result:         False
+   display_obj_pc:                     False
+   display_gate:                       False
+  
    display_3d_modeling_result:         True
+   display_frame:                      True
+   display_class:                      True
+   display_id:                         True
+   display_state:                      False
   
    processing_mode: 'DT' # D - detection, DT - detection and tracking
-   processing_object: 'both' # car, person, both
+   processing_object: 'car' # car, person, both
   
-   pc_view_crop:                       True
+   pc_view_crop:                       False
    area_number:                        1
    fov_angle:                          100
   
-   pc_range_crop:                      True
+   pc_range_crop:                      False
    sensor_height:                      2.0
    higher_limit:                       4.0
    lower_limit:                        -4.0
    min_distance:                       1.5
    max_distance:                       50.0
   
-   blind_update_limit:                 5
+   blind_update_limit:                 1
    frame_rate:                         10
    max_id:                             10000
    ```
     - `sub_image_topic`指明订阅的图像话题。
     - `sub_point_clouds_topic`指明订阅的点云话题。
-    - `pub_marker_topic`指明发布的话题。
+    - `pub_marker_topic`指明发布的话题，类型为`MarkerArray`，可以通过`rviz`查看。
     - `calibration_file`指明标定文件的名称。
     - `area_number`为激光雷达视场区域编号，1为x正向，2为y负向，3为x负向，4为y正向。
     - `fov_angle`为相机水平视场角，单位度。
@@ -121,14 +129,13 @@ ROS package for detection and tracking
 ## 运行
  - 加载参数文件至ROS参数服务器
    ```Shell
-   cd conf
+   cd detection_and_tracking/conf
    rosparam load param.yaml
  - 启动`detection_and_tracking`
    ```Shell
-   cd scripts
+   cd detection_and_tracking/scripts
    python3 detection_and_tracking.py
    ```
- - 发布的话题类型为`MarkerArray`，可以通过`rviz`查看
  - 如果运行时发生下列错误
    ```Shell
    RuntimeError: /pytorch/torch/csrc/jit/fuser/cuda/fused_kernel.cpp:137: a PTX JIT compilation failed
