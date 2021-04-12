@@ -2,24 +2,34 @@ dt:
   print_time:                         True
   print_objects_info:                 False
   record_objects_info:                True
+  record_time:                        True
   
-  sub_image_topic:                    /usb_cam/image_rect_color
+  sub_image_topic:                    /usb_cam/image_raw
   sub_point_clouds_topic:             /pandar_points
   pub_marker_topic:                   /objects
   calibration_file:                   head_camera.yaml
   
   display_image_raw:                  False
-  display_image_masked:               False
+  display_image_segmented:            True
   display_point_clouds_raw:           False
-  display_point_clouds_projected:     False
+  display_point_clouds_projected:     True
   
-  display_detection_result:           False
   display_segmentation_result:        False
-  display_2d_modeling_result:         True
+  display_fusion_result:              True
+  display_calibration_result:         False
+  
+  display_2d_modeling_result:         False
+  display_obj_pc:                     False
+  display_gate:                       False
+  
   display_3d_modeling_result:         True
+  display_frame:                      True
+  display_class:                      True
+  display_id:                         True
+  display_state:                      False
   
   processing_mode: 'DT' # D - detection, DT - detection and tracking
-  processing_object: 'both' # car, person, both
+  processing_object: 'car' # car, person, both
   
   pc_view_crop:                       True
   area_number:                        1
@@ -32,6 +42,6 @@ dt:
   min_distance:                       1.5
   max_distance:                       50.0
   
-  blind_update_limit:                 5
+  blind_update_limit:                 1
   frame_rate:                         10
   max_id:                             10000

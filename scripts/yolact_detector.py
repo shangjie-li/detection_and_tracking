@@ -67,7 +67,7 @@ def draw_mask(img, mask, color):
     
     return img_numpy
 
-def draw_detection_result(img, mask, classname, score, box, color):
+def draw_segmentation_result(img, mask, classname, score, box, color):
     # 功能：绘制检测结果
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      mask <class 'torch.Tensor'> torch.Size([frame_height, frame_width]) 掩膜
@@ -214,7 +214,7 @@ if __name__ == '__main__':
         score = float(scores[i])
         box = boxes[i]
         color = create_random_color()
-        img = draw_detection_result(img, mask, classname, score, box, color)
+        img = draw_segmentation_result(img, mask, classname, score, box, color)
         
     cv2.namedWindow("main", cv2.WINDOW_NORMAL)
     cv2.imshow("main", img)

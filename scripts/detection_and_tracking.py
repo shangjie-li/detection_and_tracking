@@ -19,7 +19,7 @@ except ImportError:
     sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
     import cv2
 
-from yolact_detector import YolactDetector, draw_mask, draw_detection_result
+from yolact_detector import YolactDetector, draw_mask, draw_segmentation_result
 from kalman_filter import KalmanFilter2D, KalmanFilter4D
 from obj import Object
 from calib import Calib
@@ -165,7 +165,7 @@ def draw_point_clouds_from_bev_view(img, xs, ys, center_alignment=True, circle_m
             
     return img
 
-def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, color):
+def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, color, display_class=True, display_id=True, display_xx=True):
     # 功能：在图像上绘制目标信息
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      classname <class 'str'> 类别
@@ -184,24 +184,32 @@ def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, col
     font_scale = 0.4
     font_thickness = 1
     
-    text_str = classname + ' ' + str(number)
-    text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
-    cv2.rectangle(img, (u1, v1), (u1 + text_w, v1 - text_h - 4), color, -1)
-    cv2.putText(img, text_str, (u1, v1 - 3), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+    if display_class or display_id:
+        if display_class and display_id:
+            text_str = classname + ' ' + str(number)
+        elif display_class and not display_id:
+            text_str = classname
+        elif not display_class and display_id:
+            text_str = str(number)
+        
+        text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u1, v1), (u1 + text_w, v1 - text_h - 4), color, -1)
+        cv2.putText(img, text_str, (u1, v1 - 3), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
     
-    text_lo = '(%.1fm, %.1fm)' % (xref, yref)
-    text_w_lo, _ = cv2.getTextSize(text_lo, font_face, font_scale, font_thickness)[0]
-    cv2.rectangle(img, (u2, v2), (u2 + text_w_lo, v2 + text_h + 4), color, -1)
-    cv2.putText(img, text_lo, (u2, v2 + text_h + 1), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
-    
-    text_ve = '(%.1fm/s, %.1fm/s)' % (vx, vy)
-    text_w_ve, _ = cv2.getTextSize(text_ve, font_face, font_scale, font_thickness)[0]
-    cv2.rectangle(img, (u2, v2 + text_h + 4), (u2 + text_w_ve, v2 + 2 * text_h + 8), color, -1)
-    cv2.putText(img, text_ve, (u2, v2 + 2 * text_h + 5), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+    if display_xx:
+        text_lo = '(%.1fm, %.1fm)' % (xref, yref)
+        text_w_lo, _ = cv2.getTextSize(text_lo, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u2, v2), (u2 + text_w_lo, v2 + text_h + 4), color, -1)
+        cv2.putText(img, text_lo, (u2, v2 + text_h + 1), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+        
+        text_ve = '(%.1fm/s, %.1fm/s)' % (vx, vy)
+        text_w_ve, _ = cv2.getTextSize(text_ve, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u2, v2 + text_h + 4), (u2 + text_w_ve, v2 + 2 * text_h + 8), color, -1)
+        cv2.putText(img, text_ve, (u2, v2 + 2 * text_h + 5), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
     
     return img
 
-def draw_object_model_from_main_view(img, objs, mat, thickness=1):
+def draw_object_model_from_main_view(img, objs, mat, frame, display_frame, display_class, display_id, display_state, thickness=1):
     # 功能：在图像上绘制目标轮廓
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      objs <class 'list'> 存储目标检测结果
@@ -226,7 +234,7 @@ def draw_object_model_from_main_view(img, objs, mat, thickness=1):
         
         height = objs[i].h
         color = objs[i].color
-        img = draw_3d_model(img, polygon, height, mat, color, thickness)
+        img, flag = draw_3d_model(img, polygon, height, mat, color, thickness)
         
         # 选取三维边界框中的顶点，绘制目标信息
         pdds = []
@@ -244,7 +252,18 @@ def draw_object_model_from_main_view(img, objs, mat, thickness=1):
         xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2], 1]])
         _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
         
-        img = draw_object_info(img, objs[i].classname, objs[i].number, objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color)
+        display_info = False
+        if display_class or display_id or display_state: display_info = True
+        if flag and display_info:
+            img = draw_object_info(img, objs[i].classname, objs[i].number,
+             objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
+              display_class, display_id, display_state)
+    
+    font_face = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = 0.4
+    font_thickness = 1
+    if display_frame:
+        cv2.putText(img, str(frame), (10, 20), font_face, font_scale, (0, 0, 255), font_thickness, cv2.LINE_AA)
     
     return img
 
@@ -352,9 +371,6 @@ def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
                 obj = Object()
                 
                 # 提取相关参数
-                xref, yref = find_nearest_point(xsc, ysc)
-                obj.xref = float(xref)
-                obj.yref = float(yref)
                 obj.mask, obj.classname, obj.score, obj.box = masks[i], str(classes[i]), float(scores[i]), boxes[i]
                 obj.xs, obj.ys, obj.zs = xsc, ysc, zsc
                 
@@ -367,6 +383,9 @@ def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
                     obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cylinder(xsc, ysc, zsc)
                     obj.l = min(obj.l, 1.0)
                     obj.w = min(obj.w, 1.0)
+                
+                obj.xref = obj.x0
+                obj.yref = obj.y0
                 
                 objs.append(obj)
                 
@@ -395,28 +414,16 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             # 匹配成功，预测并更新
             objs_tracked[j].tracker.predict()
             objs_tracked[j].tracker.update(objs_detected[idx].xref, objs_detected[idx].yref)
-            objs_tracked[j].tracker_x0.predict()
-            objs_tracked[j].tracker_x0.update(objs_detected[idx].x0)
-            objs_tracked[j].tracker_y0.predict()
-            objs_tracked[j].tracker_y0.update(objs_detected[idx].y0)
-            objs_tracked[j].tracker_z0.predict()
-            objs_tracked[j].tracker_z0.update(objs_detected[idx].z0)
             objs_tracked[j].tracker_l.predict()
             objs_tracked[j].tracker_l.update(objs_detected[idx].l)
             objs_tracked[j].tracker_w.predict()
             objs_tracked[j].tracker_w.update(objs_detected[idx].w)
-            objs_tracked[j].tracker_h.predict()
-            objs_tracked[j].tracker_h.update(objs_detected[idx].h)
             
             # 继承检测结果中的参数
             obj = objs_detected[idx]
             obj.tracker = objs_tracked[j].tracker
-            obj.tracker_x0 = objs_tracked[j].tracker_x0
-            obj.tracker_y0 = objs_tracked[j].tracker_y0
-            obj.tracker_z0 = objs_tracked[j].tracker_z0
             obj.tracker_l = objs_tracked[j].tracker_l
             obj.tracker_w = objs_tracked[j].tracker_w
-            obj.tracker_h = objs_tracked[j].tracker_h
             obj.number = objs_tracked[j].number
             obj.color = objs_tracked[j].color
             objs_tracked[j] = obj
@@ -427,9 +434,6 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
         else:
             # 匹配不成功，只预测
             objs_tracked[j].tracker.predict()
-            objs_tracked[j].tracker_x0.predict()
-            objs_tracked[j].tracker_y0.predict()
-            objs_tracked[j].tracker_z0.predict()
             
             # 修改更新中断次数
             objs_tracked[j].tracker_blind_update += 1
@@ -440,16 +444,13 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
         objs_tracked[j].yref = objs_tracked[j].tracker.xx[2, 0]
         objs_tracked[j].vy = objs_tracked[j].tracker.xx[3, 0]
         
-        objs_tracked[j].x0 = objs_tracked[j].tracker_x0.xx[0, 0]
-        objs_tracked[j].y0 = objs_tracked[j].tracker_y0.xx[0, 0]
-        objs_tracked[j].z0 = objs_tracked[j].tracker_z0.xx[0, 0]
+        objs_tracked[j].x0 = objs_tracked[j].xref
+        objs_tracked[j].y0 = objs_tracked[j].yref
         objs_tracked[j].l = objs_tracked[j].tracker_l.xx[0, 0]
         objs_tracked[j].w = objs_tracked[j].tracker_w.xx[0, 0]
-        objs_tracked[j].h = objs_tracked[j].tracker_h.xx[0, 0]
         
         if objs_tracked[j].l < 0: objs_tracked[j].l = 0
         if objs_tracked[j].w < 0: objs_tracked[j].w = 0
-        if objs_tracked[j].h < 0: objs_tracked[j].h = 0
         
     # 删除长时间未跟踪的目标
     objs_remained = []
@@ -488,12 +489,8 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             # 继承检测结果中的参数
             obj = objs_detected[idx]
             obj.tracker = objs_temp[j].tracker
-            obj.tracker_x0 = objs_temp[j].tracker_x0
-            obj.tracker_y0 = objs_temp[j].tracker_y0
-            obj.tracker_z0 = objs_temp[j].tracker_z0
             obj.tracker_l = objs_temp[j].tracker_l
             obj.tracker_w = objs_temp[j].tracker_w
-            obj.tracker_h = objs_temp[j].tracker_h
             objs_temp[j] = obj
             
             # 对跟踪的位置、速度重新赋值
@@ -501,8 +498,11 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
             objs_temp[j].tracker.xx[1, 0] = vx
             objs_temp[j].tracker.xx[2, 0] = zy
             objs_temp[j].tracker.xx[3, 0] = vy
-            objs_temp[j].tracker_x0.xx[1, 0] = vx
-            objs_temp[j].tracker_y0.xx[1, 0] = vy
+            
+            objs_temp[j].xref = objs_temp[j].tracker.xx[0, 0]
+            objs_temp[j].vx = objs_temp[j].tracker.xx[1, 0]
+            objs_temp[j].yref = objs_temp[j].tracker.xx[2, 0]
+            objs_temp[j].vy = objs_temp[j].tracker.xx[3, 0]
             
             # 增加ID和颜色等属性
             number += 1
@@ -522,16 +522,12 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
           gate_threshold=400)
         
         # 初始化卡尔曼滤波器，对相关参数进行平滑
-        objs_temp[j].tracker_x0 = KalmanFilter2D(1 / frame_rate, objs_temp[j].x0, 0, sigma_ax=1, sigma_ox=0.1)
-        objs_temp[j].tracker_y0 = KalmanFilter2D(1 / frame_rate, objs_temp[j].y0, 0, sigma_ax=1, sigma_ox=0.1)
-        objs_temp[j].tracker_z0 = KalmanFilter2D(1 / frame_rate, objs_temp[j].z0, 0, sigma_ax=1, sigma_ox=0.1)
         objs_temp[j].tracker_l = KalmanFilter2D(1 / frame_rate, objs_temp[j].l, 0, sigma_ax=1, sigma_ox=0.1)
         objs_temp[j].tracker_w = KalmanFilter2D(1 / frame_rate, objs_temp[j].w, 0, sigma_ax=1, sigma_ox=0.1)
-        objs_temp[j].tracker_h = KalmanFilter2D(1 / frame_rate, objs_temp[j].h, 0, sigma_ax=1, sigma_ox=0.1)
     
     return number, objs_tracked, objs_temp
 
-def publish_marker_msg(pub, header, frame_rate, objs):
+def publish_marker_msg(pub, header, frame_rate, objs, random_number=True):
     markerarray = MarkerArray()
     
     num = len(objs)
@@ -545,7 +541,10 @@ def publish_marker_msg(pub, header, frame_rate, objs):
         # 设置该标记的命名空间和ID，ID应该是独一无二的
         # 具有相同命名空间和ID的标记将会覆盖前一个
         marker.ns = obj.classname
-        marker.id = i
+        if random_number:
+            marker.id = i
+        else:
+            marker.id = obj.number
         
         # 设置标记类型
         if obj.has_orientation:
@@ -609,6 +608,14 @@ def point_clouds_callback(pc):
     global frame
     frame += 1
     
+    global display_obj_pc, display_gate, display_class, display_id, display_state
+    
+    # 动态设置终端输出
+    global print_time
+    global print_objects_info
+    print_time = rospy.get_param("~print_time")
+    print_objects_info = rospy.get_param("~print_objects_info")
+    
     # 相机与激光雷达消息同步
     global cv_stamps
     global cv_images
@@ -627,28 +634,26 @@ def point_clouds_callback(pc):
     cv_image = cv_images[stamp_idx]
     cv_image = cv_image[:, :, (2, 1, 0)]
     
-    # 动态设置终端输出
-    global print_time
-    global print_objects_info
-    print_time = rospy.get_param("~print_time")
-    print_objects_info = rospy.get_param("~print_objects_info")
-    
-    # 目标检测
+    # 图像实例分割
     time_start = time.time()
     masks, classes, scores, boxes = detector.run(cv_image, items, score_thresholds, top_ks)
-    time_detection = time.time() - time_start
+    time_segmentation = time.time() - time_start
     
     # 载入点云
     xyz_raw = pointcloud2_to_xyz_array(pc, remove_nans=True)
     xyz = xyz_raw.copy()
+    
+    # 点云透视投影
+    time_start = time.time()
     if pc_view_crop:
         xyz = limit_pc_view(xyz, area_number, fov_angle)
     if pc_range_crop:
         xyz = limit_pc_range(xyz, sensor_height, higher_limit, lower_limit, min_distance, max_distance)
+    xyz, uv = project_point_clouds(xyz, calib.projection_l2i, window_height, window_width)
+    time_projection = time.time() - time_start
     
     # 图像与点云实例匹配
     time_start = time.time()
-    xyz, uv = project_point_clouds(xyz, calib.projection_l2i, window_height, window_width)
     objs = fuse(xyz, uv, masks, classes, scores, boxes, window_height, window_width)
     time_fusion = time.time() - time_start
     
@@ -688,28 +693,31 @@ def point_clouds_callback(pc):
     # 模式切换
     if processing_mode == 'D':
         objs = objs
-        display_obj_pc = True
         display_gate = False
+        random_number = True
     elif processing_mode == 'DT':
         objs = objs_tracked
         display_obj_pc = False
-        display_gate = True
+        random_number = False
     else:
         raise Exception('processing_mode is not "D" or "DT".')
     
     # 输出结果
-    publish_marker_msg(pub_marker, pc.header, frame_rate, objs)
+    publish_marker_msg(pub_marker, pc.header, frame_rate, objs, random_number)
     
     # 可视化
     time_start = time.time()
     if display_image_raw:
         window_image_raw = cv_image.copy()
-    if display_image_masked:
-        window_image_masked = cv_image.copy()
-        for i in range(masks.shape[0]):
-            mask = masks[i]
-            color = COLORS[i % len(COLORS)]
-            window_image_masked = draw_mask(window_image_masked, mask, color)
+    if display_image_segmented:
+        window_image_segmented = cv_image.copy()
+        num = len(objs)
+        for i in range(num):
+            if objs[i].tracker_blind_update > 0:
+                continue
+            mask = objs[i].mask
+            color = objs[i].color
+            window_image_segmented = draw_mask(window_image_segmented, mask, color)
     if display_point_clouds_raw:
         window_point_clouds_raw = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_point_clouds_raw = draw_point_clouds_from_bev_view(window_point_clouds_raw, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=True, circle_mode=False, color=(96, 96, 96), radius=1)
@@ -717,33 +725,39 @@ def point_clouds_callback(pc):
         window_point_clouds_projected = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_point_clouds_projected = draw_point_clouds_from_main_view(window_point_clouds_projected, xyz[:, 0], xyz[:, 1], xyz[:, 2], calib.projection_l2i, jc, circle_mode=True, radius=2)
     
-    if display_detection_result:
-        window_detection_result = cv_image.copy()
+    if display_segmentation_result:
+        window_segmentation_result = cv_image.copy()
         for i in reversed(range(masks.shape[0])):
             mask = masks[i]
             classname = classes[i]
             score = scores[i]
             box = boxes[i]
             color = COLORS[i % len(COLORS)]
-            window_detection_result = draw_detection_result(window_detection_result, mask, classname, score, box, color)
-    if display_segmentation_result:
-        window_segmentation_result = cv_image.copy()
+            window_segmentation_result = draw_segmentation_result(window_segmentation_result, mask, classname, score, box, color)
+    if display_fusion_result:
+        window_fusion_result = cv_image.copy()
         num = len(objs)
         for i in range(num):
+            if objs[i].tracker_blind_update > 0:
+                continue
             mask = objs[i].mask
-            color = COLORS[i % len(COLORS)]
-            window_segmentation_result = draw_mask(window_segmentation_result, mask, color)
+            color = objs[i].color
+            window_fusion_result = draw_mask(window_fusion_result, mask, color)
             xs = objs[i].xs
             ys = objs[i].ys
             zs = objs[i].zs
-            window_segmentation_result = draw_point_clouds_from_main_view(window_segmentation_result, xs, ys, zs, calib.projection_l2i, jc, circle_mode=True, radius=2)
+            window_fusion_result = draw_point_clouds_from_main_view(window_fusion_result, xs, ys, zs, calib.projection_l2i, jc, circle_mode=True, radius=1)
+    if display_calibration_result:
+        window_calibration_result = cv_image.copy()
+        window_calibration_result = draw_point_clouds_from_main_view(window_calibration_result, xyz[:, 0], xyz[:, 1], xyz[:, 2], calib.projection_l2i, jc, circle_mode=True, radius=1)
+    
     if display_2d_modeling_result:
         window_2d_modeling_result = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_2d_modeling_result = draw_point_clouds_from_bev_view(window_2d_modeling_result, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=False, circle_mode=False, color=(96, 96, 96), radius=1)
         window_2d_modeling_result = draw_object_model_from_bev_view(window_2d_modeling_result, objs, display_obj_pc, display_gate, center_alignment=False, circle_mode=False, thickness=1)
     if display_3d_modeling_result:
         window_3d_modeling_result = cv_image.copy()
-        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, thickness=1)
+        window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, frame, display_frame, display_class, display_id, display_state, thickness=2)
     time_display = time.time() - time_start
     
     # 显示与保存
@@ -751,10 +765,10 @@ def point_clouds_callback(pc):
         cv2.namedWindow("image_raw", cv2.WINDOW_NORMAL)
         cv2.imshow("image_raw", window_image_raw)
         video_image_raw.write(window_image_raw)
-    if display_image_masked:
-        cv2.namedWindow("image_masked", cv2.WINDOW_NORMAL)
-        cv2.imshow("image_masked", window_image_masked)
-        video_image_masked.write(window_image_masked)
+    if display_image_segmented:
+        cv2.namedWindow("image_segmented", cv2.WINDOW_NORMAL)
+        cv2.imshow("image_segmented", window_image_segmented)
+        video_image_segmented.write(window_image_segmented)
     if display_point_clouds_raw:
         cv2.namedWindow("point_clouds_raw", cv2.WINDOW_NORMAL)
         cv2.imshow("point_clouds_raw", window_point_clouds_raw)
@@ -764,14 +778,19 @@ def point_clouds_callback(pc):
         cv2.imshow("point_clouds_projected", window_point_clouds_projected)
         video_point_clouds_projected.write(window_point_clouds_projected)
     
-    if display_detection_result:
-        cv2.namedWindow("detection_result", cv2.WINDOW_NORMAL)
-        cv2.imshow("detection_result", window_detection_result)
-        video_detection_result.write(window_detection_result)
     if display_segmentation_result:
         cv2.namedWindow("segmentation_result", cv2.WINDOW_NORMAL)
         cv2.imshow("segmentation_result", window_segmentation_result)
         video_segmentation_result.write(window_segmentation_result)
+    if display_fusion_result:
+        cv2.namedWindow("fusion_result", cv2.WINDOW_NORMAL)
+        cv2.imshow("fusion_result", window_fusion_result)
+        video_fusion_result.write(window_fusion_result)
+    if display_calibration_result:
+        cv2.namedWindow("calibration_result", cv2.WINDOW_NORMAL)
+        cv2.imshow("calibration_result", window_calibration_result)
+        video_calibration_result.write(window_calibration_result)
+    
     if display_2d_modeling_result:
         cv2.namedWindow("2d_modeling_result", cv2.WINDOW_NORMAL)
         cv2.imshow("2d_modeling_result", window_2d_modeling_result)
@@ -783,9 +802,9 @@ def point_clouds_callback(pc):
     
     # 显示窗口时按Esc键终止程序
     display_now = False
-    if display_image_raw or display_image_masked or display_point_clouds_raw or display_point_clouds_projected:
+    if display_image_raw or display_image_segmented or display_point_clouds_raw or display_point_clouds_projected:
         display_now = True
-    if display_detection_result or display_segmentation_result or display_2d_modeling_result or display_3d_modeling_result:
+    if display_segmentation_result or display_fusion_result or display_2d_modeling_result or display_3d_modeling_result:
         display_now = True
     
     if display_now and cv2.waitKey(1) == 27:
@@ -794,10 +813,10 @@ def point_clouds_callback(pc):
             cv2.destroyWindow("image_raw")
             video_image_raw.release()
             print("Save video of image_raw.")
-        if display_image_masked:
-            cv2.destroyWindow("image_masked")
-            video_image_masked.release()
-            print("Save video of image_masked.")
+        if display_image_segmented:
+            cv2.destroyWindow("image_segmented")
+            video_image_segmented.release()
+            print("Save video of image_segmented.")
         if display_point_clouds_raw:
             cv2.destroyWindow("point_clouds_raw")
             video_point_clouds_raw.release()
@@ -807,14 +826,19 @@ def point_clouds_callback(pc):
             video_point_clouds_projected.release()
             print("Save video of point_clouds_projected.")
         
-        if display_detection_result:
-            cv2.destroyWindow("detection_result")
-            video_detection_result.release()
-            print("Save video of detection_result.")
         if display_segmentation_result:
             cv2.destroyWindow("segmentation_result")
             video_segmentation_result.release()
             print("Save video of segmentation_result.")
+        if display_fusion_result:
+            cv2.destroyWindow("fusion_result")
+            video_fusion_result.release()
+            print("Save video of fusion_result.")
+        if display_calibration_result:
+            cv2.destroyWindow("calibration_result")
+            video_calibration_result.release()
+            print("Save video of calibration_result.")
+        
         if display_2d_modeling_result:
             cv2.destroyWindow("2d_modeling_result")
             video_2d_modeling_result.release()
@@ -827,7 +851,8 @@ def point_clouds_callback(pc):
     
     # 记录耗时情况
     time_all = time.time() - time_start_all
-    time_detection = round(time_detection, 3)
+    time_segmentation = round(time_segmentation, 3)
+    time_projection = round(time_projection, 3)
     time_fusion = round(time_fusion, 3)
     time_tracking = round(time_tracking, 3)
     time_display = round(time_display, 3)
@@ -835,13 +860,14 @@ def point_clouds_callback(pc):
     
     if print_time:
         print()
-        print("image_stamp            ", cv_stamp)
-        print("lidar_stamp            ", lidar_stamp)
-        print("time cost of detection ", time_detection)
-        print("time cost of fusion    ", time_fusion)
-        print("time cost of tracking  ", time_tracking)
-        print("time cost of display   ", time_display)
-        print("time cost of all       ", time_all)
+        print("image_stamp               ", cv_stamp)
+        print("lidar_stamp               ", lidar_stamp)
+        print("time cost of segmentation ", time_segmentation)
+        print("time cost of projection   ", time_projection)
+        print("time cost of fusion       ", time_fusion)
+        print("time cost of tracking     ", time_tracking)
+        print("time cost of display      ", time_display)
+        print("time cost of all          ", time_all)
     
     if print_objects_info:
         print()
@@ -858,9 +884,16 @@ def point_clouds_callback(pc):
     if record_objects_info:
         num = len(objs)
         for j in range(num):
-            with open(filename, 'a') as fob:
-                fob.write('frame:%d id:%d x:%.3f vx:%.3f y:%.3f vy:%.3f' % (frame, objs[j].number, objs[j].xref, objs[j].vx, objs[j].yref, objs[j].vy))
+            with open(filename_objects_info, 'a') as fob:
+                fob.write('time_stamp:%.3f frame:%d id:%d x:%.3f vx:%.3f y:%.3f vy:%.3f x0:%.3f y0:%.3f z0:%.3f l:%.3f w:%.3f h:%.3f phi:%.3f' % (
+                    lidar_stamp, frame, objs[j].number, objs[j].xref, objs[j].vx, objs[j].yref, objs[j].vy, objs[j].x0, objs[j].y0, objs[j].z0, objs[j].l, objs[j].w, objs[j].h, objs[j].phi))
                 fob.write('\n')
+    
+    if record_time:
+        with open(filename_time, 'a') as fob:
+            fob.write('frame:%d amount:%d segmentation:%.3f projection:%.3f fusion:%.3f tracking:%.3f display:%.3f all:%.3f' % (
+                frame, len(objs), time_segmentation, time_projection, time_fusion, time_tracking, time_display, time_all))
+            fob.write('\n')
 
 if __name__ == '__main__':
     # 初始化节点
@@ -873,8 +906,16 @@ if __name__ == '__main__':
     # 记录结果
     record_objects_info = rospy.get_param("~record_objects_info")
     if record_objects_info:
-        filename = 'result.txt'
-        with open(filename, 'w') as fob:
+        filename_objects_info = 'result.txt'
+        with open(filename_objects_info, 'w') as fob:
+            fob.seek(0)
+            fob.truncate()
+    
+    # 记录耗时
+    record_time = rospy.get_param("~record_time")
+    if record_time:
+        filename_time = 'time_cost.txt'
+        with open(filename_time, 'w') as fob:
             fob.seek(0)
             fob.truncate()
     
@@ -905,7 +946,7 @@ if __name__ == '__main__':
     min_distance = rospy.get_param("~min_distance")
     max_distance = rospy.get_param("~max_distance")
     
-    # 初始化目标检测器
+    # 初始化YolactDetector
     detector = YolactDetector()
     
     # 准备图像序列
@@ -953,14 +994,23 @@ if __name__ == '__main__':
     
     # 设置显示窗口
     display_image_raw = rospy.get_param("~display_image_raw")
-    display_image_masked = rospy.get_param("~display_image_masked")
+    display_image_segmented = rospy.get_param("~display_image_segmented")
     display_point_clouds_raw = rospy.get_param("~display_point_clouds_raw")
     display_point_clouds_projected = rospy.get_param("~display_point_clouds_projected")
     
-    display_detection_result = rospy.get_param("~display_detection_result")
     display_segmentation_result = rospy.get_param("~display_segmentation_result")
+    display_fusion_result = rospy.get_param("~display_fusion_result")
+    display_calibration_result = rospy.get_param("~display_calibration_result")
+    
     display_2d_modeling_result = rospy.get_param("~display_2d_modeling_result")
+    display_obj_pc = rospy.get_param("~display_obj_pc")
+    display_gate = rospy.get_param("~display_gate")
+    
     display_3d_modeling_result = rospy.get_param("~display_3d_modeling_result")
+    display_frame = rospy.get_param("~display_frame")
+    display_class = rospy.get_param("~display_class")
+    display_id = rospy.get_param("~display_id")
+    display_state = rospy.get_param("~display_state")
     
     window_height = cv_images[0].shape[0]
     window_width = cv_images[0].shape[1]
@@ -969,10 +1019,10 @@ if __name__ == '__main__':
         video_path = 'image_raw.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
         video_image_raw = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
-    if display_image_masked:
-        video_path = 'image_masked.mp4'
+    if display_image_segmented:
+        video_path = 'image_segmented.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
-        video_image_masked = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
+        video_image_segmented = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
     if display_point_clouds_raw:
         video_path = 'point_clouds_raw.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
@@ -982,14 +1032,19 @@ if __name__ == '__main__':
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
         video_point_clouds_projected = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
     
-    if display_detection_result:
-        video_path = 'detection_result.mp4'
-        video_format = cv2.VideoWriter_fourcc(*"mp4v")
-        video_detection_result = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
     if display_segmentation_result:
         video_path = 'segmentation_result.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")
         video_segmentation_result = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
+    if display_fusion_result:
+        video_path = 'fusion_result.mp4'
+        video_format = cv2.VideoWriter_fourcc(*"mp4v")
+        video_fusion_result = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
+    if display_calibration_result:
+        video_path = 'calibration_result.mp4'
+        video_format = cv2.VideoWriter_fourcc(*"mp4v")
+        video_calibration_result = cv2.VideoWriter(video_path, video_format, frame_rate, (window_width, window_height), True)
+    
     if display_2d_modeling_result:
         video_path = '2d_modeling_result.mp4'
         video_format = cv2.VideoWriter_fourcc(*"mp4v")

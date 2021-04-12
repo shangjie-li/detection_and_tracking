@@ -80,6 +80,17 @@ def test_point_in_polygon_using_pointPolygonTest(x, y, polygon):
     
     return flag
 
+def test_point_in_image(uv, height, width):
+    # 功能：测试点是否在图像中
+    # 输入：uv <class 'numpy.ndarray'> (n, 2) 代表图像坐标[u, v]，n为点的数量
+    #      height <class 'int'> 图像高度
+    #      width <class 'int'> 图像宽度
+    # 输出：idxs <class 'numpy.ndarray'> (n,) 点在图像中为True，否则为False
+    
+    idxs = (uv[:, 0] >= 0) & (uv[:, 0] < width) & (uv[:, 1] >= 0) & (uv[:, 1] < height)
+    
+    return idxs
+
 def find_boundary_close_to_origin_in_polygon(polygon):
     # 功能：保留多边形各顶点中靠近坐标原点的部分
     # 输入：polygon <class 'numpy.ndarray'> (n, 1, 2) n为轮廓点数
@@ -139,9 +150,14 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
     #      color <class 'tuple'> 边界框颜色
     #      thickness <class 'int'> 边界框宽度
     # 输出：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
+    #      display <class 'bool'> 显示边界框标志位
     
     frame_height = img.shape[0]
     frame_width = img.shape[1]
+    
+    # 当三维边界框的顶点超出图像时，取消绘制
+    img_copy = img.copy()
+    display = True
     
     # 将多边形各顶点按逆时针方向排序
     polygon = sort_polygon(polygon)
@@ -155,9 +171,11 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
     for i in range(num):
         xyz = np.array([[poc[i, 0, 0], poc[i, 0, 1], poc[i, 0, 2], 1]])
         _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+        if not test_point_in_image(uv_1, frame_height, frame_width)[0]: display = False
         
         xyz = np.array([[poc[i, 0, 0], poc[i, 0, 1], poc[i, 0, 2] + height, 1]])
         _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+        if not test_point_in_image(uv_2, frame_height, frame_width)[0]: display = False
         
         pt_1 = (int(uv_1[0, 0]), int(uv_1[0, 1]))
         pt_2 = (int(uv_2[0, 0]), int(uv_2[0, 1]))
@@ -169,9 +187,11 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
     for i in range(num - 1):
         xyz = np.array([[poc[i, 0, 0], poc[i, 0, 1], poc[i, 0, 2], 1]])
         _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+        if not test_point_in_image(uv_1, frame_height, frame_width)[0]: display = False
         
         xyz = np.array([[poc[i + 1, 0, 0], poc[i + 1, 0, 1], poc[i + 1, 0, 2], 1]])
         _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+        if not test_point_in_image(uv_2, frame_height, frame_width)[0]: display = False
         
         pt_1 = (int(uv_1[0, 0]), int(uv_1[0, 1]))
         pt_2 = (int(uv_2[0, 0]), int(uv_2[0, 1]))
@@ -183,9 +203,11 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
     
     xyz = np.array([[poc[0, 0, 0], poc[0, 0, 1], poc[0, 0, 2] + height, 1]])
     _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+    if not test_point_in_image(uv_1, frame_height, frame_width)[0]: display = False
     
     xyz = np.array([[poc[-1, 0, 0], poc[-1, 0, 1], poc[-1, 0, 2] + height, 1]])
     _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+    if not test_point_in_image(uv_2, frame_height, frame_width)[0]: display = False
     
     slope = (uv_2[0, 1] - uv_1[0, 1]) / (uv_2[0, 0] - uv_1[0, 0])
     
@@ -195,6 +217,7 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
         if i != 0 and i != num - 1:
             xyz = np.array([[poc[i, 0, 0], poc[i, 0, 1], poc[i, 0, 2] + height, 1]])
             _, uv = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            if not test_point_in_image(uv, frame_height, frame_width)[0]: display = False
             du = uv[0, 0] - uv_1[0, 0]
             dv = uv[0, 1] - uv_1[0, 1]
             if dv > slope * du: flag = True
@@ -205,6 +228,7 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
         if i != 0 and i != num - 1:
             xyz = np.array([[poc[i, 0, 0], poc[i, 0, 1], poc[i, 0, 2] + height, 1]])
             _, uv = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            if not test_point_in_image(uv, frame_height, frame_width)[0]: display = False
             du = uv[0, 0] - uv_1[0, 0]
             dv = uv[0, 1] - uv_1[0, 1]
             if dv < slope * du: flag = True
@@ -214,9 +238,11 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
         for i in range(num):
             xyz = np.array([[polygon[i, 0, 0], polygon[i, 0, 1], polygon[i, 0, 2] + height, 1]])
             _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            if not test_point_in_image(uv_1, frame_height, frame_width)[0]: display = False
             
             xyz = np.array([[polygon[(i + 1) % num, 0, 0], polygon[(i + 1) % num, 0, 1], polygon[(i + 1) % num, 0, 2] + height, 1]])
             _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            if not test_point_in_image(uv_2, frame_height, frame_width)[0]: display = False
             
             pt_1 = (int(uv_1[0, 0]), int(uv_1[0, 1]))
             pt_2 = (int(uv_2[0, 0]), int(uv_2[0, 1]))
@@ -226,13 +252,18 @@ def draw_3d_model(img, polygon, height, mat, color=(255, 0, 0), thickness=1):
         for i in range(num - 1):
             xyz = np.array([[poc[i, 0, 0], poc[i, 0, 1], poc[i, 0, 2] + height, 1]])
             _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            if not test_point_in_image(uv_1, frame_height, frame_width)[0]: display = False
             
             xyz = np.array([[poc[i + 1, 0, 0], poc[i + 1, 0, 1], poc[i + 1, 0, 2] + height, 1]])
             _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            if not test_point_in_image(uv_2, frame_height, frame_width)[0]: display = False
             
             pt_1 = (int(uv_1[0, 0]), int(uv_1[0, 1]))
             pt_2 = (int(uv_2[0, 0]), int(uv_2[0, 1]))
             cv2.line(img, pt_1, pt_2, color, thickness)
     
-    return img
+    if display:
+        return img, display
+    else:
+        return img_copy, display
 
