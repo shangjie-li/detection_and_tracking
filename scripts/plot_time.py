@@ -100,9 +100,9 @@ if __name__ == '__main__':
             frame, amount, time_segmentation, time_projection, time_fusion, time_tracking, time_display, time_all))
     
     # 设置画布
-    fig, axes = plt.subplots(2, 1, figsize=(4.5, 6))
+    fig, axes = plt.subplots(2, 1, figsize=(5, 6))
     fig.canvas.set_window_title('Time cost')
-    plt.subplots_adjust(left=0.125, right=0.875, bottom=0.1, top=0.9, wspace=0.0, hspace=0.5)
+    plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.4)
     
     # 绘制amount
     axes[0].plot(frame_list, amount_list, color='red', linestyle='-', linewidth=1, label='amount      ')
@@ -111,9 +111,9 @@ if __name__ == '__main__':
     axes[0].set_title('Number of objects - Frame', fontsize=10)
     
     # 绘制time_cost
-    axes[1].plot(frame_list, time_segmentation_list, color='blue', linestyle='-', linewidth=1, label='segmentation')
+    axes[1].plot(frame_list, time_segmentation_list, color='green', linestyle='-', linewidth=1, label='segmentation')
     axes[1].plot(frame_list, time_projection_list, color='purple', linestyle='-', linewidth=1, label='projection  ')
-    axes[1].plot(frame_list, time_fusion_list, color='green', linestyle='-', linewidth=1, label='fusion      ')
+    axes[1].plot(frame_list, time_fusion_list, color='deepskyblue', linestyle='-', linewidth=1, label='fusion      ')
     axes[1].plot(frame_list, time_tracking_list, color='orange', linestyle='-', linewidth=1, label='tracking    ')
     axes[1].plot(frame_list, time_all_list, color='red', linestyle='-', linewidth=1, label='all         ')
     axes[1].set_yticks([0, 0.05, 0.10])
