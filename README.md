@@ -28,7 +28,7 @@ ROS package for detection and tracking
    cd ..
    catkin_make
    ```
- - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`modules/yolact/weights`
+ - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`detection_and_tracking/modules/yolact/weights`
 
 ## 参数配置
  - 编写相机与激光雷达标定参数`detection_and_tracking/conf/head_camera.yaml`
@@ -121,8 +121,8 @@ ROS package for detection and tracking
     - `sub_point_clouds_topic`指明订阅的点云话题。
     - `pub_marker_topic`指明发布的话题，类型为`MarkerArray`，可以通过`rviz`查看。
     - `calibration_file`指明标定文件的名称。
-    - `area_number`为激光雷达视场区域编号，1为x正向，2为y负向，3为x负向，4为y正向。
-    - `fov_angle`为相机水平视场角，单位度。
+    - `area_number`为激光雷达视场区域编号，1为x正向，2为y负向，3为x负向，4为y正向，详情见附图。
+    - `fov_angle`为相机水平视场角，单位为度。
     - `sensor_height`指明激光雷达距地面高度，单位为米。
     - `higher_limit`和`lower_limit`指明期望的点云相对地面的限制高度，单位为米。
     - `min_distance`和`max_distance`指明期望的点云相对激光雷达的限制距离，单位为米。
