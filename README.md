@@ -24,6 +24,7 @@ ROS package for detection and tracking
    mkdir -p ros_ws/src
    cd ros_ws/src
    git clone https://github.com/shangjie-li/detection_and_tracking.git --recursive
+   git clone https://github.com/shangjie-li/points_process.git
    cd ..
    catkin_make
    ```
@@ -38,7 +39,7 @@ ROS package for detection and tracking
       rows: 3
       cols: 4
       dt: d
-      data: [920, 0, 348, 0, 0, 934, 177, 0, 0, 0, 1, 0]
+      data: [461, 0, 333, 0, 0, 463, 184, 0, 0, 0, 1, 0]
    LidarToCameraMat: !!opencv-matrix
       rows: 4
       cols: 4
@@ -77,16 +78,16 @@ ROS package for detection and tracking
    sub_image_topic:                    /usb_cam/image_raw
    sub_point_clouds_topic:             /pandar_points_processed
    pub_marker_topic:                   /objects
-   calibration_file:                   head_camera_20210323.yaml
+   calibration_file:                   head_camera.yaml
   
    display_image_raw:                  False
-   display_image_segmented:            True
+   display_image_segmented:            False
    display_point_clouds_raw:           False
-   display_point_clouds_projected:     True
+   display_point_clouds_projected:     False
   
    display_segmentation_result:        False
-   display_fusion_result:              True
-   display_calibration_result:         False
+   display_fusion_result:              False
+   display_calibration_result:         True
   
    display_2d_modeling_result:         False
    display_obj_pc:                     False
@@ -99,13 +100,13 @@ ROS package for detection and tracking
    display_state:                      False
   
    processing_mode: 'DT' # D - detection, DT - detection and tracking
-   processing_object: 'car' # car, person, both
+   processing_object: 'both' # car, person, both
   
-   pc_view_crop:                       False
+   pc_view_crop:                       True
    area_number:                        1
    fov_angle:                          100
   
-   pc_range_crop:                      False
+   pc_range_crop:                      True
    sensor_height:                      2.0
    higher_limit:                       4.0
    lower_limit:                        -4.0
@@ -127,11 +128,18 @@ ROS package for detection and tracking
     - `min_distance`和`max_distance`指明期望的点云相对激光雷达的限制距离，单位为米。
 
 ## 运行
+ - 启动点云预处理节点`points_process`
+   ```Shell
+   cd ros_ws
+   source devel/setup.bash
+   roslaunch points_process points_process.launch # Don't forget to adjust parameters in the launch file
+   ```
  - 加载参数文件至ROS参数服务器
    ```Shell
    cd detection_and_tracking/conf
    rosparam load param.yaml
- - 启动`detection_and_tracking`
+   ```
+ - 启动目标检测和跟踪节点`detection_and_tracking`
    ```Shell
    cd detection_and_tracking/scripts
    python3 detection_and_tracking.py

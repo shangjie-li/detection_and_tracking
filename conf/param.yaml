@@ -5,18 +5,18 @@ dt:
   record_time:                        True
   
   sub_image_topic:                    /usb_cam/image_raw
-  sub_point_clouds_topic:             /pandar_points
+  sub_point_clouds_topic:             /pandar_points_processed
   pub_marker_topic:                   /objects
   calibration_file:                   head_camera.yaml
   
   display_image_raw:                  False
-  display_image_segmented:            True
+  display_image_segmented:            False
   display_point_clouds_raw:           False
-  display_point_clouds_projected:     True
+  display_point_clouds_projected:     False
   
   display_segmentation_result:        False
-  display_fusion_result:              True
-  display_calibration_result:         False
+  display_fusion_result:              False
+  display_calibration_result:         True
   
   display_2d_modeling_result:         False
   display_obj_pc:                     False
@@ -29,7 +29,7 @@ dt:
   display_state:                      False
   
   processing_mode: 'DT' # D - detection, DT - detection and tracking
-  processing_object: 'car' # car, person, both
+  processing_object: 'both' # car, person, both
   
   pc_view_crop:                       True
   area_number:                        1
