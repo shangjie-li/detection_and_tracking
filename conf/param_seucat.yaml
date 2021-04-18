@@ -7,6 +7,7 @@ dt:
   sub_image_topic:                    /usb_cam/image_raw
   sub_point_clouds_topic:             /pandar_points_no_ground
   pub_marker_topic:                   /objects
+  pub_marker_tracked_topic:           /objects_tracked
   calibration_file:                   head_camera_20210323.yaml
   
   display_image_raw:                  False
@@ -45,3 +46,4 @@ dt:
   blind_update_limit:                 1
   frame_rate:                         10
   max_id:                             10000
+  

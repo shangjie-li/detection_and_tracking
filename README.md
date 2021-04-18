@@ -78,6 +78,7 @@ ROS package for detection and tracking
    sub_image_topic:                    /usb_cam/image_raw
    sub_point_clouds_topic:             /pandar_points_processed
    pub_marker_topic:                   /objects
+   pub_marker_tracked_topic:           /objects_tracked
    calibration_file:                   head_camera.yaml
   
    display_image_raw:                  False
