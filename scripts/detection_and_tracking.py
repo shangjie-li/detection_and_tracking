@@ -692,18 +692,16 @@ def point_clouds_callback(pc):
     
     # 模式切换
     if processing_mode == 'D':
+        publish_marker_msg(pub_marker, pc.header, frame_rate, objs, True)
         objs = objs
         display_gate = False
-        random_number = True
     elif processing_mode == 'DT':
+        publish_marker_msg(pub_marker, pc.header, frame_rate, objs, True)
+        publish_marker_msg(pub_marker_tracked, pc.header, frame_rate, objs_tracked, False)
         objs = objs_tracked
         display_obj_pc = False
-        random_number = False
     else:
         raise Exception('processing_mode is not "D" or "DT".')
-    
-    # 输出结果
-    publish_marker_msg(pub_marker, pc.header, frame_rate, objs, random_number)
     
     # 可视化
     time_start = time.time()
@@ -720,7 +718,7 @@ def point_clouds_callback(pc):
             window_image_segmented = draw_mask(window_image_segmented, mask, color)
     if display_point_clouds_raw:
         window_point_clouds_raw = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
-        window_point_clouds_raw = draw_point_clouds_from_bev_view(window_point_clouds_raw, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=True, circle_mode=False, color=(96, 96, 96), radius=1)
+        window_point_clouds_raw = draw_point_clouds_from_bev_view(window_point_clouds_raw, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=False, circle_mode=False, color=(96, 96, 96), radius=1)
     if display_point_clouds_projected:
         window_point_clouds_projected = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_point_clouds_projected = draw_point_clouds_from_main_view(window_point_clouds_projected, xyz[:, 0], xyz[:, 1], xyz[:, 2], calib.projection_l2i, jc, circle_mode=True, radius=2)
@@ -923,6 +921,7 @@ if __name__ == '__main__':
     sub_image_topic = rospy.get_param("~sub_image_topic")
     sub_point_clouds_topic = rospy.get_param("~sub_point_clouds_topic")
     pub_marker_topic = rospy.get_param("~pub_marker_topic")
+    pub_marker_tracked_topic = rospy.get_param("~pub_marker_tracked_topic")
     
     # 设置标定参数
     calibration_file = rospy.get_param("~calibration_file")
@@ -1061,6 +1060,7 @@ if __name__ == '__main__':
     # 这样可以实现每次订阅最新的节点消息，避免因队列消息拥挤而导致的雷达点云延迟
     rospy.Subscriber(sub_point_clouds_topic, PointCloud2, point_clouds_callback, queue_size=1, buff_size=52428800)
     pub_marker = rospy.Publisher(pub_marker_topic, MarkerArray, queue_size=1)
+    pub_marker_tracked = rospy.Publisher(pub_marker_tracked_topic, MarkerArray, queue_size=1)
     
     # 与C++的spin不同，rospy.spin()的作用是当节点停止时让python程序退出
     rospy.spin()
