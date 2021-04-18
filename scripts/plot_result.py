@@ -294,6 +294,8 @@ def compute_error(time_gps_list, time_result_list, xg_list, yg_list, vxg_list, v
         ephi = abs(phig_list[idx] - phi_list[i])
         if ephi > PI / 2:
             ephi = PI - ephi
+        if (PI / 2 - ephi) < (ephi - 0):
+            ephi = PI / 2 - ephi
         
         ex_list.append(ex)
         evx_list.append(evx)
@@ -392,7 +394,8 @@ def plot_data(axes, time_gps_list, time_result_list, xg_list, yg_list, vxg_list,
     return axes
     
 def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew_list, ephi_list, color='red', label='20km/h',
-        xlabel='Distance / (m)', xticks=[], yticks_xy=[], yticks_vxvy=[], yticks_lw=[], yticks_phi=[]):
+        xlabel='Distance / (m)', xticks=[], yticks_xy=[], yticks_vxvy=[], yticks_lw=[], yticks_phi=[],
+            record=True, filename='error.txt', set_ticklabels=False, plot_mean=True, print_mean=True, record_mean=True):
     # 功能：绘制误差曲线
     
     # 绘制x0误差曲线
@@ -403,7 +406,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[0, 0].set_title('Location error (X)', fontsize=10)
     axes[0, 0].set_xticks(xticks)
     axes[0, 0].set_yticks(yticks_xy)
+    if set_ticklabels:
+        axes[0, 0].set_xticklabels(xticks)
+        axes[0, 0].set_yticklabels(yticks_xy)
+    axes[0, 0].set_xlim(xticks[0], xticks[-1])
     axes[0, 0].set_ylim(yticks_xy[0], yticks_xy[-1])
+    mean_ex = np.mean(ex_list)
+    std_ex = np.std(ex_list)
+    if plot_mean:
+        axes[0, 0].plot(dis_list, [mean_ex] * len(dis_list), color, linestyle='--', linewidth=1)
     
     # 绘制y0误差曲线
     axes[0, 1].plot(dis_list, ey_list, color, linestyle='-', linewidth=1, label=label)
@@ -413,7 +424,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[0, 1].set_title('Location error (Y)', fontsize=10)
     axes[0, 1].set_xticks(xticks)
     axes[0, 1].set_yticks(yticks_xy)
+    if set_ticklabels:
+        axes[0, 1].set_xticklabels(xticks)
+        axes[0, 1].set_yticklabels(yticks_xy)
+    axes[0, 1].set_xlim(xticks[0], xticks[-1])
     axes[0, 1].set_ylim(yticks_xy[0], yticks_xy[-1])
+    mean_ey = np.mean(ey_list)
+    std_ey = np.std(ey_list)
+    if plot_mean:
+        axes[0, 1].plot(dis_list, [mean_ey] * len(dis_list), color, linestyle='--', linewidth=1)
     
     # 绘制vx误差曲线
     axes[1, 0].plot(dis_list, evx_list, color, linestyle='-', linewidth=1, label=label)
@@ -423,7 +442,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[1, 0].set_title('Velocity error (X)', fontsize=10)
     axes[1, 0].set_xticks(xticks)
     axes[1, 0].set_yticks(yticks_vxvy)
+    if set_ticklabels:
+        axes[1, 0].set_xticklabels(xticks)
+        axes[1, 0].set_yticklabels(yticks_vxvy)
+    axes[1, 0].set_xlim(xticks[0], xticks[-1])
     axes[1, 0].set_ylim(yticks_vxvy[0], yticks_vxvy[-1])
+    mean_evx = np.mean(evx_list)
+    std_evx = np.std(evx_list)
+    if plot_mean:
+        axes[1, 0].plot(dis_list, [mean_evx] * len(dis_list), color, linestyle='--', linewidth=1)
     
     # 绘制vy误差曲线
     axes[1, 1].plot(dis_list, evy_list, color, linestyle='-', linewidth=1, label=label)
@@ -433,7 +460,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[1, 1].set_title('Velocity error (Y)', fontsize=10)
     axes[1, 1].set_xticks(xticks)
     axes[1, 1].set_yticks(yticks_vxvy)
+    if set_ticklabels:
+        axes[1, 1].set_xticklabels(xticks)
+        axes[1, 1].set_yticklabels(yticks_vxvy)
+    axes[1, 1].set_xlim(xticks[0], xticks[-1])
     axes[1, 1].set_ylim(yticks_vxvy[0], yticks_vxvy[-1])
+    mean_evy = np.mean(evy_list)
+    std_evy = np.std(evy_list)
+    if plot_mean:
+        axes[1, 1].plot(dis_list, [mean_evy] * len(dis_list), color, linestyle='--', linewidth=1)
     
     # 绘制l误差曲线
     axes[2, 0].plot(dis_list, el_list, color, linestyle='-', linewidth=1, label=label)
@@ -443,7 +478,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[2, 0].set_title("Length error", fontsize=10)
     axes[2, 0].set_xticks(xticks)
     axes[2, 0].set_yticks(yticks_lw)
+    if set_ticklabels:
+        axes[2, 0].set_xticklabels(xticks)
+        axes[2, 0].set_yticklabels(yticks_lw)
+    axes[2, 0].set_xlim(xticks[0], xticks[-1])
     axes[2, 0].set_ylim(yticks_lw[0], yticks_lw[-1])
+    mean_el = np.mean(el_list)
+    std_el = np.std(el_list)
+    if plot_mean:
+        axes[2, 0].plot(dis_list, [mean_el] * len(dis_list), color, linestyle='--', linewidth=1)
     
     # 绘制w误差曲线
     axes[2, 1].plot(dis_list, ew_list, color, linestyle='-', linewidth=1, label=label)
@@ -453,7 +496,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[2, 1].set_title("Width error", fontsize=10)
     axes[2, 1].set_xticks(xticks)
     axes[2, 1].set_yticks(yticks_lw)
+    if set_ticklabels:
+        axes[2, 1].set_xticklabels(xticks)
+        axes[2, 1].set_yticklabels(yticks_lw)
+    axes[2, 1].set_xlim(xticks[0], xticks[-1])
     axes[2, 1].set_ylim(yticks_lw[0], yticks_lw[-1])
+    mean_ew = np.mean(ew_list)
+    std_ew = np.std(ew_list)
+    if plot_mean:
+        axes[2, 1].plot(dis_list, [mean_ew] * len(dis_list), color, linestyle='--', linewidth=1)
     
     # 绘制phi误差曲线
     axes[3, 0].plot(dis_list, ephi_list, color, linestyle='-', linewidth=1, label=label)
@@ -463,7 +514,15 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[3, 0].set_title("Azimuth error", fontsize=10)
     axes[3, 0].set_xticks(xticks)
     axes[3, 0].set_yticks(yticks_phi)
+    if set_ticklabels:
+        axes[3, 0].set_xticklabels(xticks)
+        axes[3, 0].set_yticklabels(yticks_phi)
+    axes[3, 0].set_xlim(xticks[0], xticks[-1])
     axes[3, 0].set_ylim(yticks_phi[0], yticks_phi[-1])
+    mean_ephi = np.mean(ephi_list)
+    std_ephi = np.std(ephi_list)
+    if plot_mean:
+        axes[3, 0].plot(dis_list, [mean_ephi] * len(dis_list), color, linestyle='--', linewidth=1)
     
     axes[3, 1].spines['right'].set_color('none')
     axes[3, 1].spines['left'].set_color('none')
@@ -472,6 +531,29 @@ def plot_error(axes, dis_list, ex_list, ey_list, evx_list, evy_list, el_list, ew
     axes[3, 1].set_xticks([])
     axes[3, 1].set_yticks([])
     
+    str_title = xlabel + '-' + label
+    str_class = '      ex   ey   el   ew   ep   evx   evy'
+    str_mean  = 'mean: %.2f %.2f %.2f %.2f %.2f %.2f %.2f' % (mean_ex, mean_ey, mean_el, mean_ew, mean_ephi, mean_evx, mean_evy)
+    str_std   = 'std : %.2f %.2f %.2f %.2f %.2f %.2f %.2f' % (std_ex, std_ey, std_el, std_ew, std_ephi, std_evx, std_evy)
+    
+    if print_mean:
+        print()
+        print(str_title)
+        print(str_class)
+        print(str_mean)
+        print(str_std)
+    
+    if record:
+        with open(filename, 'a') as fob:
+            fob.write(str_title)
+            fob.write('\n')
+            fob.write(str_class)
+            fob.write('\n')
+            fob.write(str_mean)
+            fob.write('\n')
+            fob.write(str_std)
+            fob.write('\n')
+    
     return axes
     
 XG1, YG1 = 671574.879, 3529046.701
@@ -479,26 +561,36 @@ XG2, YG2 = 671566.978, 3529141.928
 
 LENGTH = 4.925
 WIDTH = 1.864
+
+plot_original_data = False
+print_original_data = False
+record = True
+result_filename = 'error.txt'
     
 if __name__ == '__main__':
+    if record:
+        with open(result_filename, 'w') as fob:
+            fob.seek(0)
+            fob.truncate()
+            
     # X Direction ######################################################
     # 读入GPS数据
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/GPS_data/line1_15.txt'
     time_gps_list_15, xg_list_15, yg_list_15, vxg_list_15, vyg_list_15, phig_list_15 = read_gps_data(
-        filename, XG1, YG1, XG2, YG2, print_mode=True)
+        filename, XG1, YG1, XG2, YG2, print_mode=print_original_data)
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/GPS_data/line1_40.txt'
     time_gps_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, phig_list_40 = read_gps_data(
-        filename, XG1, YG1, XG2, YG2, print_mode=True)
+        filename, XG1, YG1, XG2, YG2, print_mode=print_original_data)
     
     # 读入结果数据
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/2021-03-24-14-53-53/result.txt'
     time_result_list_15, frame_result_list_15, id_list_15, x_list_15, y_list_15, vx_list_15, vy_list_15, \
         x0_list_15, y0_list_15, z0_list_15, l_list_15, w_list_15, h_list_15, phi_list_15 = \
-        read_result_data(filename, print_mode=True)
+        read_result_data(filename, print_mode=print_original_data)
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/2021-03-24-15-10-36/result.txt'
     time_result_list_40, frame_result_list_40, id_list_40, x_list_40, y_list_40, vx_list_40, vy_list_40, \
         x0_list_40, y0_list_40, z0_list_40, l_list_40, w_list_40, h_list_40, phi_list_40 = \
-        read_result_data(filename, print_mode=True)
+        read_result_data(filename, print_mode=print_original_data)
     
     # 补偿系统时间差
     for i in range(len(time_result_list_15)):
@@ -518,29 +610,30 @@ if __name__ == '__main__':
         time_gps_list_40, time_result_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, LENGTH, WIDTH, phig_list_40,
             x0_list_40, y0_list_40, vx_list_40, vy_list_40, l_list_40, w_list_40, phi_list_40)
     
-    # 绘制15km/h工况的GPS数据和结果数据
-    fig, axes = plt.subplots(4, 2, figsize=(5, 8))
-    fig.canvas.set_window_title('X direction 15km/h')
-    plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
-    axes = plot_data(
-        axes, time_gps_list_15, time_result_list_15, xg_list_15, yg_list_15, vxg_list_15, vyg_list_15, LENGTH, WIDTH, phig_list_15,
-            x0_list_15, y0_list_15, vx_list_15, vy_list_15, l_list_15, w_list_15, phi_list_15, color='red')
-    fig.savefig('X direction original data in 15.png', dpi=100)
-    
-    # 绘制40km/h工况的GPS数据和结果数据
-    fig, axes = plt.subplots(4, 2, figsize=(5, 8))
-    fig.canvas.set_window_title('X direction 40km/h')
-    plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
-    axes = plot_data(
-        axes, time_gps_list_40, time_result_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, LENGTH, WIDTH, phig_list_40,
-            x0_list_40, y0_list_40, vx_list_40, vy_list_40, l_list_40, w_list_40, phi_list_40, color='blue')
-    fig.savefig('X direction original data in 40.png', dpi=100)
+    if plot_original_data:
+        # 绘制15km/h工况的GPS数据和结果数据
+        fig, axes = plt.subplots(4, 2, figsize=(5, 8))
+        fig.canvas.set_window_title('X direction 15km/h')
+        plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
+        axes = plot_data(
+            axes, time_gps_list_15, time_result_list_15, xg_list_15, yg_list_15, vxg_list_15, vyg_list_15, LENGTH, WIDTH, phig_list_15,
+                x0_list_15, y0_list_15, vx_list_15, vy_list_15, l_list_15, w_list_15, phi_list_15, color='red')
+        fig.savefig('X direction original data in 15.png', dpi=100)
+        
+        # 绘制40km/h工况的GPS数据和结果数据
+        fig, axes = plt.subplots(4, 2, figsize=(5, 8))
+        fig.canvas.set_window_title('X direction 40km/h')
+        plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
+        axes = plot_data(
+            axes, time_gps_list_40, time_result_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, LENGTH, WIDTH, phig_list_40,
+                x0_list_40, y0_list_40, vx_list_40, vy_list_40, l_list_40, w_list_40, phi_list_40, color='blue')
+        fig.savefig('X direction original data in 40.png', dpi=100)
     
     # 截取有效数据
     x0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15 = crop_data(
-        x0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15, min_dis=7, max_dis=43)
+        x0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15, min_dis=7, max_dis=25)
     x0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40 = crop_data(
-        x0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40, min_dis=7, max_dis=43)
+        x0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40, min_dis=7, max_dis=25)
     
     # 绘制误差数据
     fig, axes = plt.subplots(4, 2, figsize=(5, 8))
@@ -548,10 +641,12 @@ if __name__ == '__main__':
     plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
     axes = plot_error(
         axes, x0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15, color='red', label='20km/h',
-            xlabel='X coordinate', xticks=[10, 20, 30, 40], yticks_xy=[0, 2], yticks_vxvy=[0, 2], yticks_lw=[0, 4], yticks_phi=[0, 2])
+            xlabel='X coordinate', xticks=[7, 25], yticks_xy=[0, 0.6], yticks_vxvy=[0, 1.4], yticks_lw=[0, 1.4], yticks_phi=[0, 0.2],
+                record=record, filename=result_filename)
     axes = plot_error(
         axes, x0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40, color='blue', label='40km/h',
-            xlabel='X coordinate', xticks=[10, 20, 30, 40], yticks_xy=[0, 2], yticks_vxvy=[0, 2], yticks_lw=[0, 4], yticks_phi=[0, 2])
+            xlabel='X coordinate', xticks=[7, 25], yticks_xy=[0, 0.6], yticks_vxvy=[0, 1.4], yticks_lw=[0, 1.4], yticks_phi=[0, 0.2],
+                record=record, filename=result_filename)
     fig.savefig('X direction error.png', dpi=100)
     ####################################################################
     
@@ -559,20 +654,20 @@ if __name__ == '__main__':
     # 读入GPS数据
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/GPS_data/line3_15.txt'
     time_gps_list_15, xg_list_15, yg_list_15, vxg_list_15, vyg_list_15, phig_list_15 = read_gps_data(
-        filename, XG1, YG1, XG2, YG2, print_mode=True)
+        filename, XG1, YG1, XG2, YG2, print_mode=print_original_data)
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/GPS_data/line3_40.txt'
     time_gps_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, phig_list_40 = read_gps_data(
-        filename, XG1, YG1, XG2, YG2, print_mode=True)
+        filename, XG1, YG1, XG2, YG2, print_mode=print_original_data)
     
     # 读入结果数据
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/2021-03-24-15-05-04/result.txt'
     time_result_list_15, frame_result_list_15, id_list_15, x_list_15, y_list_15, vx_list_15, vy_list_15, \
         x0_list_15, y0_list_15, z0_list_15, l_list_15, w_list_15, h_list_15, phi_list_15 = \
-        read_result_data(filename, print_mode=True)
+        read_result_data(filename, print_mode=print_original_data)
     filename = '/home/lishangjie/detection-and-tracking_doc/result/2021-04-07-experiment/single-target/2021-03-24-15-17-35/result.txt'
     time_result_list_40, frame_result_list_40, id_list_40, x_list_40, y_list_40, vx_list_40, vy_list_40, \
         x0_list_40, y0_list_40, z0_list_40, l_list_40, w_list_40, h_list_40, phi_list_40 = \
-        read_result_data(filename, print_mode=True)
+        read_result_data(filename, print_mode=print_original_data)
     
     # 补偿系统时间差
     for i in range(len(time_result_list_15)):
@@ -592,29 +687,30 @@ if __name__ == '__main__':
         time_gps_list_40, time_result_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, LENGTH, WIDTH, phig_list_40,
             x0_list_40, y0_list_40, vx_list_40, vy_list_40, l_list_40, w_list_40, phi_list_40)
     
-    # 绘制15km/h工况的GPS数据和结果数据
-    fig, axes = plt.subplots(4, 2, figsize=(5, 8))
-    fig.canvas.set_window_title('Y direction 15km/h')
-    plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
-    axes = plot_data(
-        axes, time_gps_list_15, time_result_list_15, xg_list_15, yg_list_15, vxg_list_15, vyg_list_15, LENGTH, WIDTH, phig_list_15,
-            x0_list_15, y0_list_15, vx_list_15, vy_list_15, l_list_15, w_list_15, phi_list_15, color='red')
-    fig.savefig('Y direction original data in 15.png', dpi=100)
-
-    # 绘制40km/h工况的GPS数据和结果数据
-    fig, axes = plt.subplots(4, 2, figsize=(5, 8))
-    fig.canvas.set_window_title('Y direction 40km/h')
-    plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
-    axes = plot_data(
-        axes, time_gps_list_40, time_result_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, LENGTH, WIDTH, phig_list_40,
-            x0_list_40, y0_list_40, vx_list_40, vy_list_40, l_list_40, w_list_40, phi_list_40, color='blue')
-    fig.savefig('Y direction original data in 40.png', dpi=100)
+    if plot_original_data:
+        # 绘制15km/h工况的GPS数据和结果数据
+        fig, axes = plt.subplots(4, 2, figsize=(5, 8))
+        fig.canvas.set_window_title('Y direction 15km/h')
+        plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
+        axes = plot_data(
+            axes, time_gps_list_15, time_result_list_15, xg_list_15, yg_list_15, vxg_list_15, vyg_list_15, LENGTH, WIDTH, phig_list_15,
+                x0_list_15, y0_list_15, vx_list_15, vy_list_15, l_list_15, w_list_15, phi_list_15, color='red')
+        fig.savefig('Y direction original data in 15.png', dpi=100)
+    
+        # 绘制40km/h工况的GPS数据和结果数据
+        fig, axes = plt.subplots(4, 2, figsize=(5, 8))
+        fig.canvas.set_window_title('Y direction 40km/h')
+        plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
+        axes = plot_data(
+            axes, time_gps_list_40, time_result_list_40, xg_list_40, yg_list_40, vxg_list_40, vyg_list_40, LENGTH, WIDTH, phig_list_40,
+                x0_list_40, y0_list_40, vx_list_40, vy_list_40, l_list_40, w_list_40, phi_list_40, color='blue')
+        fig.savefig('Y direction original data in 40.png', dpi=100)
     
     # 截取有效数据
     y0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15 = crop_data(
-        y0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15, min_dis=-8, max_dis=10)
+        y0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15, min_dis=-6, max_dis=10)
     y0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40 = crop_data(
-        y0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40, min_dis=-8, max_dis=10)
+        y0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40, min_dis=-6, max_dis=10)
     
     # 绘制误差数据
     fig, axes = plt.subplots(4, 2, figsize=(5, 8))
@@ -622,10 +718,12 @@ if __name__ == '__main__':
     plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9, wspace=0.4, hspace=0.8)
     axes = plot_error(
         axes, y0_list_15, ex_list_15, ey_list_15, evx_list_15, evy_list_15, el_list_15, ew_list_15, ephi_list_15, color='red', label='20km/h',
-            xlabel='Y coordinate', xticks=[-10, 0, 10], yticks_xy=[0, 2], yticks_vxvy=[0, 2], yticks_lw=[0, 2], yticks_phi=[0, 1])
+            xlabel='Y coordinate', xticks=[-6, 10], yticks_xy=[0, 0.6], yticks_vxvy=[0, 1.4], yticks_lw=[0, 1.4], yticks_phi=[0, 0.2],
+                record=record, filename=result_filename)
     axes = plot_error(
         axes, y0_list_40, ex_list_40, ey_list_40, evx_list_40, evy_list_40, el_list_40, ew_list_40, ephi_list_40, color='blue', label='40km/h',
-            xlabel='Y coordinate', xticks=[-10, 0, 10], yticks_xy=[0, 2], yticks_vxvy=[0, 2], yticks_lw=[0, 2], yticks_phi=[0, 1])
+            xlabel='Y coordinate', xticks=[-6, 10], yticks_xy=[0, 0.6], yticks_vxvy=[0, 1.4], yticks_lw=[0, 1.4], yticks_phi=[0, 0.2],
+                record=record, filename=result_filename)
     fig.savefig('Y direction error.png', dpi=100)
     ####################################################################
     
