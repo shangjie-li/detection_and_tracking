@@ -692,15 +692,12 @@ def point_clouds_callback(pc):
     
     # 模式切换
     if processing_mode == 'D':
-        random_number = True
-        publish_marker_msg(pub_marker, pc.header, frame_rate, objs, random_number)
+        publish_marker_msg(pub_marker, pc.header, frame_rate, objs, True)
         objs = objs
         display_gate = False
     elif processing_mode == 'DT':
-        random_number = True
-        publish_marker_msg(pub_marker, pc.header, frame_rate, objs, random_number)
-        random_number = False
-        publish_marker_msg(pub_marker_tracked, pc.header, frame_rate, objs_tracked, random_number)
+        publish_marker_msg(pub_marker, pc.header, frame_rate, objs, True)
+        publish_marker_msg(pub_marker_tracked, pc.header, frame_rate, objs_tracked, False)
         objs = objs_tracked
         display_obj_pc = False
     else:
@@ -721,7 +718,7 @@ def point_clouds_callback(pc):
             window_image_segmented = draw_mask(window_image_segmented, mask, color)
     if display_point_clouds_raw:
         window_point_clouds_raw = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
-        window_point_clouds_raw = draw_point_clouds_from_bev_view(window_point_clouds_raw, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=True, circle_mode=False, color=(96, 96, 96), radius=1)
+        window_point_clouds_raw = draw_point_clouds_from_bev_view(window_point_clouds_raw, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=False, circle_mode=False, color=(96, 96, 96), radius=1)
     if display_point_clouds_projected:
         window_point_clouds_projected = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_point_clouds_projected = draw_point_clouds_from_main_view(window_point_clouds_projected, xyz[:, 0], xyz[:, 1], xyz[:, 2], calib.projection_l2i, jc, circle_mode=True, radius=2)

@@ -10,27 +10,27 @@ dt:
   pub_marker_tracked_topic:           /objects_tracked
   calibration_file:                   head_camera_20210323.yaml
   
-  display_image_raw:                  False
-  display_image_segmented:            False
-  display_point_clouds_raw:           False
-  display_point_clouds_projected:     False
+  display_image_raw:                  True
+  display_image_segmented:            True
+  display_point_clouds_raw:           True
+  display_point_clouds_projected:     True
   
-  display_segmentation_result:        False
-  display_fusion_result:              False
-  display_calibration_result:         False
+  display_segmentation_result:        True
+  display_fusion_result:              True
+  display_calibration_result:         True
   
-  display_2d_modeling_result:         False
-  display_obj_pc:                     False
-  display_gate:                       False
+  display_2d_modeling_result:         True
+  display_obj_pc:                     True
+  display_gate:                       True
   
-  display_3d_modeling_result:         False
+  display_3d_modeling_result:         True
   display_frame:                      True
   display_class:                      True
   display_id:                         True
-  display_state:                      False
+  display_state:                      True
   
   processing_mode: 'DT' # D - detection, DT - detection and tracking
-  processing_object: 'car' # car, person, both
+  processing_object: 'both' # car, person, both
   
   pc_view_crop:                       False
   area_number:                        1
