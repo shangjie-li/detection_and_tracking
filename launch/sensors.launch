@@ -46,7 +46,7 @@
 	</node>
 	
 	<!--rviz-->
-	<node name="rviz" pkg="rviz" type="rviz"  args="pandar.rviz" />
+	<node name="rviz" pkg="rviz" type="rviz"  args="-d $(find detection_and_tracking)/launch/pandar.rviz" />
 
 </launch>
 
