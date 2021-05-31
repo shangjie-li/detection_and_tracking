@@ -336,181 +336,31 @@ def fuse(xyz, uv, classes, scores, boxes, img_height, img_width):
     
     # 遍历每个目标
     for i in range(num):
-        xs, ys, zs = [], [], []
         u1, v1, u2, v2 = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
-        for pt in range(xyz.shape[0]):
-            u, v = int(uv[pt, 0]), int(uv[pt, 1])
-            if u >= u1 and u < u2 and v >= v1 and v < v2:
-                xs.append(xyz[pt, 0])
-                ys.append(xyz[pt, 1])
-                zs.append(xyz[pt, 2])
-        xs, ys, zs = np.array(xs), np.array(ys), np.array(zs)
+        idxs = (uv[:, 0] >= u1) & (uv[:, 0] < u2) & (uv[:, 1] >= v1) & (uv[:, 1] < v2)
+        xyz_chosen = xyz[idxs]
+        xs, ys, zs = xyz_chosen[:, 0], xyz_chosen[:, 1], xyz_chosen[:, 2]
         
         if xs.shape[0] > 0:
-            
             # 对三维点云聚类
             xsc, ysc, zsc, is_clustered = cluster_point_clouds(xs, ys, zs)
             
             if is_clustered:
                 # 创建目标对象
                 obj = Object()
-                
-                # 提取相关参数
                 obj.classname, obj.score, obj.box = str(classes[i]), float(scores[i]), boxes[i]
                 obj.xs, obj.ys, obj.zs = xsc, ysc, zsc
                 
-                if classes[i] == 'car' or 'bus' or 'truck':
-                    # 拟合3D盒子模型
+                if classes[i] == 'car' or 'bus' or 'truck':  # 拟合3D盒子模型
                     obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
-                
-                elif classes[i] == 'person':
-                    # 拟合3D圆点模型
+                elif classes[i] == 'person':  # 拟合3D圆点模型
                     obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cylinder(xsc, ysc, zsc)
-                    obj.l = min(obj.l, 1.0)
-                    obj.w = min(obj.w, 1.0)
+                    obj.l, obj.w = min(obj.l, 1.0), min(obj.w, 1.0)
                 
-                obj.xref = obj.x0
-                obj.yref = obj.y0
-                
+                obj.xref, obj.yref = obj.x0, obj.y0
                 objs.append(obj)
                 
     return objs
-
-#~ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, frame_rate, COLORS):
-    #~ # 数据关联与跟踪
-    #~ num = len(objs_tracked)
-    #~ for j in range(num):
-        #~ flag = False
-        #~ idx = 0
-        #~ ddm = float('inf')
-        
-        #~ # 计算残差加权范数
-        #~ n = len(objs_detected)
-        #~ for k in range(n):
-            #~ zx = objs_detected[k].xref
-            #~ zy = objs_detected[k].yref
-            #~ dd = objs_tracked[j].tracker.compute_the_residual(zx, zy)
-            #~ if dd < ddm and dd < objs_tracked[j].tracker.gate_threshold:
-                #~ idx = k
-                #~ ddm = dd
-                #~ flag = True
-        
-        #~ if flag:
-            #~ # 匹配成功，预测并更新
-            #~ objs_tracked[j].tracker.predict()
-            #~ objs_tracked[j].tracker.update(objs_detected[idx].xref, objs_detected[idx].yref)
-            #~ objs_tracked[j].tracker_l.predict()
-            #~ objs_tracked[j].tracker_l.update(objs_detected[idx].l)
-            #~ objs_tracked[j].tracker_w.predict()
-            #~ objs_tracked[j].tracker_w.update(objs_detected[idx].w)
-            
-            #~ # 继承检测结果中的参数
-            #~ obj = objs_detected[idx]
-            #~ obj.tracker = objs_tracked[j].tracker
-            #~ obj.tracker_l = objs_tracked[j].tracker_l
-            #~ obj.tracker_w = objs_tracked[j].tracker_w
-            #~ obj.number = objs_tracked[j].number
-            #~ obj.color = objs_tracked[j].color
-            #~ objs_tracked[j] = obj
-            
-            #~ # 修改更新中断次数
-            #~ objs_tracked[j].tracker_blind_update = 0
-            #~ objs_detected.pop(idx)
-        #~ else:
-            #~ # 匹配不成功，只预测
-            #~ objs_tracked[j].tracker.predict()
-            
-            #~ # 修改更新中断次数
-            #~ objs_tracked[j].tracker_blind_update += 1
-        
-        #~ # 输出滤波值
-        #~ objs_tracked[j].xref = objs_tracked[j].tracker.xx[0, 0]
-        #~ objs_tracked[j].vx = objs_tracked[j].tracker.xx[1, 0]
-        #~ objs_tracked[j].yref = objs_tracked[j].tracker.xx[2, 0]
-        #~ objs_tracked[j].vy = objs_tracked[j].tracker.xx[3, 0]
-        
-        #~ objs_tracked[j].x0 = objs_tracked[j].xref
-        #~ objs_tracked[j].y0 = objs_tracked[j].yref
-        #~ objs_tracked[j].l = objs_tracked[j].tracker_l.xx[0, 0]
-        #~ objs_tracked[j].w = objs_tracked[j].tracker_w.xx[0, 0]
-        
-        #~ if objs_tracked[j].l < 0: objs_tracked[j].l = 0
-        #~ if objs_tracked[j].w < 0: objs_tracked[j].w = 0
-        
-    #~ # 删除长时间未跟踪的目标
-    #~ objs_remained = []
-    #~ num = len(objs_tracked)
-    #~ for j in range(num):
-        #~ if objs_tracked[j].tracker_blind_update <= blind_update_limit:
-            #~ objs_remained.append(objs_tracked[j])
-    #~ objs_tracked = objs_remained
-    
-    #~ # 增广跟踪列表
-    #~ num = len(objs_temp)
-    #~ for j in range(num):
-        #~ flag = False
-        #~ idx = 0
-        #~ ddm = float('inf')
-        
-        #~ # 计算残差加权范数
-        #~ n = len(objs_detected)
-        #~ for k in range(n):
-            #~ zx = objs_detected[k].xref
-            #~ zy = objs_detected[k].yref
-            #~ dd = objs_temp[j].tracker.compute_the_residual(zx, zy)
-            #~ if dd < ddm and dd < objs_temp[j].tracker.gate_threshold:
-                #~ idx = k
-                #~ ddm = dd
-                #~ flag = True
-        
-        #~ if flag:
-            #~ zx = objs_detected[idx].xref
-            #~ zy = objs_detected[idx].yref
-            #~ x = objs_temp[j].tracker.xx[0, 0]
-            #~ y = objs_temp[j].tracker.xx[2, 0]
-            #~ vx = (zx - x) / objs_temp[j].tracker.ti
-            #~ vy = (zy - y) / objs_temp[j].tracker.ti
-            
-            #~ # 继承检测结果中的参数
-            #~ obj = objs_detected[idx]
-            #~ obj.tracker = objs_temp[j].tracker
-            #~ obj.tracker_l = objs_temp[j].tracker_l
-            #~ obj.tracker_w = objs_temp[j].tracker_w
-            #~ objs_temp[j] = obj
-            
-            #~ # 对跟踪的位置、速度重新赋值
-            #~ objs_temp[j].tracker.xx[0, 0] = zx
-            #~ objs_temp[j].tracker.xx[1, 0] = vx
-            #~ objs_temp[j].tracker.xx[2, 0] = zy
-            #~ objs_temp[j].tracker.xx[3, 0] = vy
-            
-            #~ objs_temp[j].xref = objs_temp[j].tracker.xx[0, 0]
-            #~ objs_temp[j].vx = objs_temp[j].tracker.xx[1, 0]
-            #~ objs_temp[j].yref = objs_temp[j].tracker.xx[2, 0]
-            #~ objs_temp[j].vy = objs_temp[j].tracker.xx[3, 0]
-            
-            #~ # 增加ID和颜色等属性
-            #~ number += 1
-            #~ objs_temp[j].number = number
-            #~ objs_temp[j].color = COLORS[number % len(COLORS)]
-            #~ objs_tracked.append(objs_temp[j])
-            
-            #~ objs_detected.pop(idx)
-    
-    #~ # 增广临时跟踪列表
-    #~ objs_temp = objs_detected
-    #~ num = len(objs_temp)
-    #~ for j in range(num):
-        #~ # 初始化卡尔曼滤波器，对目标进行跟踪
-        #~ objs_temp[j].tracker = KalmanFilter4D(1 / frame_rate, objs_temp[j].xref, objs_temp[j].vx,
-         #~ objs_temp[j].yref, objs_temp[j].vy, sigma_ax=1, sigma_ay=1, sigma_ox=0.1, sigma_oy=0.1,
-          #~ gate_threshold=400)
-        
-        #~ # 初始化卡尔曼滤波器，对相关参数进行平滑
-        #~ objs_temp[j].tracker_l = KalmanFilter2D(1 / frame_rate, objs_temp[j].l, 0, sigma_ax=1, sigma_ox=0.1)
-        #~ objs_temp[j].tracker_w = KalmanFilter2D(1 / frame_rate, objs_temp[j].w, 0, sigma_ax=1, sigma_ox=0.1)
-    
-    #~ return number, objs_tracked, objs_temp
 
 def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, frame_rate, COLORS):
     # 数据关联与跟踪
