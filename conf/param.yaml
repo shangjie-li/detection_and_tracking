@@ -5,7 +5,7 @@ dt:
   record_time:                        True
   
   sub_image_topic:                    /usb_cam/image_raw
-  sub_point_clouds_topic:             /pandar_points_processed
+  sub_point_clouds_topic:             /pandar_points_no_ground
   pub_marker_topic:                   /objects
   pub_marker_tracked_topic:           /objects_tracked
   calibration_file:                   head_camera.yaml
@@ -16,8 +16,8 @@ dt:
   display_point_clouds_projected:     False
   
   display_segmentation_result:        False
-  display_fusion_result:              False
-  display_calibration_result:         True
+  display_fusion_result:              True
+  display_calibration_result:         False
   
   display_2d_modeling_result:         False
   display_obj_pc:                     False
@@ -43,6 +43,6 @@ dt:
   min_distance:                       1.5
   max_distance:                       50.0
   
-  blind_update_limit:                 1
+  blind_update_limit:                 0
   frame_rate:                         10
   max_id:                             10000

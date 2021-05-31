@@ -19,7 +19,7 @@ except ImportError:
     sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
     import cv2
 
-from yolact_detector import YolactDetector, draw_mask, draw_segmentation_result
+from yolov5_detector import Yolov5Detector, draw_one_box
 from kalman_filter import KalmanFilter2D, KalmanFilter4D
 from obj import Object
 from calib import Calib
@@ -138,8 +138,8 @@ def draw_point_clouds_from_bev_view(img, xs, ys, center_alignment=True, circle_m
     
     xs = xs * 10
     ys = - ys * 10
-    xs = xs.astype(np.int)
-    ys = ys.astype(np.int)
+    xs = xs.astype(int)
+    ys = ys.astype(int)
     
     height = img.shape[0]
     width = img.shape[1]
@@ -285,8 +285,8 @@ def draw_object_model_from_bev_view(img, objs, display_obj_pc=False, display_gat
             
             xst = xst * 10
             yst = - yst * 10
-            xst = xst.astype(np.int)
-            yst = yst.astype(np.int)
+            xst = xst.astype(int)
+            yst = yst.astype(int)
             
             height = img.shape[0]
             width = img.shape[1]
@@ -320,46 +320,31 @@ def draw_object_model_from_bev_view(img, objs, display_obj_pc=False, display_gat
         
     return img
 
-def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
+def fuse(xyz, uv, classes, scores, boxes, img_height, img_width):
     # 功能：点云与图像实例匹配
     # 输入：xyz <class 'numpy.ndarray'> (n, 4) 代表三维点云的齐次坐标[x, y, z, 1]，n为点的数量
     #      uv  <class 'numpy.ndarray'> (n, 2) 代表图像坐标[u, v]，n为点的数量
-    #      masks <class 'torch.Tensor'>  torch.Size([N, frame_height, frame_width]) N为目标数量
     #      classes <class 'numpy.ndarray'> (N,) N为目标数量
     #      scores <class 'numpy.ndarray'> (N,) N为目标数量
     #      boxes <class 'numpy.ndarray'> (N, 4) N为目标数量
     #      img_height <class 'int'> 图像高度
     #      img_width <class 'int'> 图像宽度
     # 输出：objs <class 'list'> 存储目标检测结果
-    
-    # 生成三通道深度图
-    # xyz_img <class 'numpy.ndarray'> (img_height, img_width, 3)
-    xyz_img = np.zeros((img_height, img_width, 3))
-    
-    for pt in range(xyz.shape[0]):
-        xyz_img[int(uv[pt, 1]), int(uv[pt, 0])] = xyz[pt, :3]
-    
-    # 利用numpy操作掩膜
-    masks_numpy = masks.byte().cpu().numpy()
-    num = masks_numpy.shape[0]
+
     objs = []
+    num = classes.shape[0] if classes is not None else 0
     
     # 遍历每个目标
     for i in range(num):
-        # 提取掩膜中的真值位置索引
-        mask = masks_numpy[i]
-        idxs = np.where(mask)
-        
-        # 利用位置索引，提取三通道深度图中的xyz坐标
-        xs_temp = xyz_img[idxs[0], idxs[1], 0]
-        ys_temp = xyz_img[idxs[0], idxs[1], 1]
-        zs_temp = xyz_img[idxs[0], idxs[1], 2]
-        
-        # 滤除无效值(0, 0, 0)
-        idxs = np.logical_and(xs_temp[:], ys_temp[:])
-        xs = xs_temp[idxs]
-        ys = ys_temp[idxs]
-        zs = zs_temp[idxs]
+        xs, ys, zs = [], [], []
+        u1, v1, u2, v2 = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
+        for pt in range(xyz.shape[0]):
+            u, v = int(uv[pt, 0]), int(uv[pt, 1])
+            if u >= u1 and u < u2 and v >= v1 and v < v2:
+                xs.append(xyz[pt, 0])
+                ys.append(xyz[pt, 1])
+                zs.append(xyz[pt, 2])
+        xs, ys, zs = np.array(xs), np.array(ys), np.array(zs)
         
         if xs.shape[0] > 0:
             
@@ -371,10 +356,10 @@ def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
                 obj = Object()
                 
                 # 提取相关参数
-                obj.mask, obj.classname, obj.score, obj.box = masks[i], str(classes[i]), float(scores[i]), boxes[i]
+                obj.classname, obj.score, obj.box = str(classes[i]), float(scores[i]), boxes[i]
                 obj.xs, obj.ys, obj.zs = xsc, ysc, zsc
                 
-                if classes[i] == 'car':
+                if classes[i] == 'car' or 'bus' or 'truck':
                     # 拟合3D盒子模型
                     obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
                 
@@ -390,6 +375,142 @@ def fuse(xyz, uv, masks, classes, scores, boxes, img_height, img_width):
                 objs.append(obj)
                 
     return objs
+
+#~ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, frame_rate, COLORS):
+    #~ # 数据关联与跟踪
+    #~ num = len(objs_tracked)
+    #~ for j in range(num):
+        #~ flag = False
+        #~ idx = 0
+        #~ ddm = float('inf')
+        
+        #~ # 计算残差加权范数
+        #~ n = len(objs_detected)
+        #~ for k in range(n):
+            #~ zx = objs_detected[k].xref
+            #~ zy = objs_detected[k].yref
+            #~ dd = objs_tracked[j].tracker.compute_the_residual(zx, zy)
+            #~ if dd < ddm and dd < objs_tracked[j].tracker.gate_threshold:
+                #~ idx = k
+                #~ ddm = dd
+                #~ flag = True
+        
+        #~ if flag:
+            #~ # 匹配成功，预测并更新
+            #~ objs_tracked[j].tracker.predict()
+            #~ objs_tracked[j].tracker.update(objs_detected[idx].xref, objs_detected[idx].yref)
+            #~ objs_tracked[j].tracker_l.predict()
+            #~ objs_tracked[j].tracker_l.update(objs_detected[idx].l)
+            #~ objs_tracked[j].tracker_w.predict()
+            #~ objs_tracked[j].tracker_w.update(objs_detected[idx].w)
+            
+            #~ # 继承检测结果中的参数
+            #~ obj = objs_detected[idx]
+            #~ obj.tracker = objs_tracked[j].tracker
+            #~ obj.tracker_l = objs_tracked[j].tracker_l
+            #~ obj.tracker_w = objs_tracked[j].tracker_w
+            #~ obj.number = objs_tracked[j].number
+            #~ obj.color = objs_tracked[j].color
+            #~ objs_tracked[j] = obj
+            
+            #~ # 修改更新中断次数
+            #~ objs_tracked[j].tracker_blind_update = 0
+            #~ objs_detected.pop(idx)
+        #~ else:
+            #~ # 匹配不成功，只预测
+            #~ objs_tracked[j].tracker.predict()
+            
+            #~ # 修改更新中断次数
+            #~ objs_tracked[j].tracker_blind_update += 1
+        
+        #~ # 输出滤波值
+        #~ objs_tracked[j].xref = objs_tracked[j].tracker.xx[0, 0]
+        #~ objs_tracked[j].vx = objs_tracked[j].tracker.xx[1, 0]
+        #~ objs_tracked[j].yref = objs_tracked[j].tracker.xx[2, 0]
+        #~ objs_tracked[j].vy = objs_tracked[j].tracker.xx[3, 0]
+        
+        #~ objs_tracked[j].x0 = objs_tracked[j].xref
+        #~ objs_tracked[j].y0 = objs_tracked[j].yref
+        #~ objs_tracked[j].l = objs_tracked[j].tracker_l.xx[0, 0]
+        #~ objs_tracked[j].w = objs_tracked[j].tracker_w.xx[0, 0]
+        
+        #~ if objs_tracked[j].l < 0: objs_tracked[j].l = 0
+        #~ if objs_tracked[j].w < 0: objs_tracked[j].w = 0
+        
+    #~ # 删除长时间未跟踪的目标
+    #~ objs_remained = []
+    #~ num = len(objs_tracked)
+    #~ for j in range(num):
+        #~ if objs_tracked[j].tracker_blind_update <= blind_update_limit:
+            #~ objs_remained.append(objs_tracked[j])
+    #~ objs_tracked = objs_remained
+    
+    #~ # 增广跟踪列表
+    #~ num = len(objs_temp)
+    #~ for j in range(num):
+        #~ flag = False
+        #~ idx = 0
+        #~ ddm = float('inf')
+        
+        #~ # 计算残差加权范数
+        #~ n = len(objs_detected)
+        #~ for k in range(n):
+            #~ zx = objs_detected[k].xref
+            #~ zy = objs_detected[k].yref
+            #~ dd = objs_temp[j].tracker.compute_the_residual(zx, zy)
+            #~ if dd < ddm and dd < objs_temp[j].tracker.gate_threshold:
+                #~ idx = k
+                #~ ddm = dd
+                #~ flag = True
+        
+        #~ if flag:
+            #~ zx = objs_detected[idx].xref
+            #~ zy = objs_detected[idx].yref
+            #~ x = objs_temp[j].tracker.xx[0, 0]
+            #~ y = objs_temp[j].tracker.xx[2, 0]
+            #~ vx = (zx - x) / objs_temp[j].tracker.ti
+            #~ vy = (zy - y) / objs_temp[j].tracker.ti
+            
+            #~ # 继承检测结果中的参数
+            #~ obj = objs_detected[idx]
+            #~ obj.tracker = objs_temp[j].tracker
+            #~ obj.tracker_l = objs_temp[j].tracker_l
+            #~ obj.tracker_w = objs_temp[j].tracker_w
+            #~ objs_temp[j] = obj
+            
+            #~ # 对跟踪的位置、速度重新赋值
+            #~ objs_temp[j].tracker.xx[0, 0] = zx
+            #~ objs_temp[j].tracker.xx[1, 0] = vx
+            #~ objs_temp[j].tracker.xx[2, 0] = zy
+            #~ objs_temp[j].tracker.xx[3, 0] = vy
+            
+            #~ objs_temp[j].xref = objs_temp[j].tracker.xx[0, 0]
+            #~ objs_temp[j].vx = objs_temp[j].tracker.xx[1, 0]
+            #~ objs_temp[j].yref = objs_temp[j].tracker.xx[2, 0]
+            #~ objs_temp[j].vy = objs_temp[j].tracker.xx[3, 0]
+            
+            #~ # 增加ID和颜色等属性
+            #~ number += 1
+            #~ objs_temp[j].number = number
+            #~ objs_temp[j].color = COLORS[number % len(COLORS)]
+            #~ objs_tracked.append(objs_temp[j])
+            
+            #~ objs_detected.pop(idx)
+    
+    #~ # 增广临时跟踪列表
+    #~ objs_temp = objs_detected
+    #~ num = len(objs_temp)
+    #~ for j in range(num):
+        #~ # 初始化卡尔曼滤波器，对目标进行跟踪
+        #~ objs_temp[j].tracker = KalmanFilter4D(1 / frame_rate, objs_temp[j].xref, objs_temp[j].vx,
+         #~ objs_temp[j].yref, objs_temp[j].vy, sigma_ax=1, sigma_ay=1, sigma_ox=0.1, sigma_oy=0.1,
+          #~ gate_threshold=400)
+        
+        #~ # 初始化卡尔曼滤波器，对相关参数进行平滑
+        #~ objs_temp[j].tracker_l = KalmanFilter2D(1 / frame_rate, objs_temp[j].l, 0, sigma_ax=1, sigma_ox=0.1)
+        #~ objs_temp[j].tracker_w = KalmanFilter2D(1 / frame_rate, objs_temp[j].w, 0, sigma_ax=1, sigma_ox=0.1)
+    
+    #~ return number, objs_tracked, objs_temp
 
 def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, frame_rate, COLORS):
     # 数据关联与跟踪
@@ -636,7 +757,7 @@ def point_clouds_callback(pc):
     
     # 图像实例分割
     time_start = time.time()
-    masks, classes, scores, boxes = detector.run(cv_image, items, score_thresholds, top_ks)
+    classes, scores, boxes = detector.run(cv_image, items=items, conf_thres=conf_thres)
     time_segmentation = time.time() - time_start
     
     # 载入点云
@@ -654,7 +775,7 @@ def point_clouds_callback(pc):
     
     # 图像与点云实例匹配
     time_start = time.time()
-    objs = fuse(xyz, uv, masks, classes, scores, boxes, window_height, window_width)
+    objs = fuse(xyz, uv, classes, scores, boxes, window_height, window_width)
     time_fusion = time.time() - time_start
     
     # 目标跟踪
@@ -663,7 +784,6 @@ def point_clouds_callback(pc):
     num = len(objs)
     for i in range(num):
         obj = Object()
-        obj.mask = objs[i].mask
         obj.classname = objs[i].classname
         obj.score = objs[i].score
         obj.box = objs[i].box
@@ -713,9 +833,11 @@ def point_clouds_callback(pc):
         for i in range(num):
             if objs[i].tracker_blind_update > 0:
                 continue
-            mask = objs[i].mask
+            classname = objs[i].classname
+            score = objs[i].score
+            box = objs[i].box
             color = objs[i].color
-            window_image_segmented = draw_mask(window_image_segmented, mask, color)
+            draw_one_box(window_image_segmented, classname, score, box, color, line_thickness=1)
     if display_point_clouds_raw:
         window_point_clouds_raw = np.ones((window_height, window_width, 3), dtype=np.uint8) * 255
         window_point_clouds_raw = draw_point_clouds_from_bev_view(window_point_clouds_raw, xyz_raw[:, 0], xyz_raw[:, 1], center_alignment=False, circle_mode=False, color=(96, 96, 96), radius=1)
@@ -725,22 +847,24 @@ def point_clouds_callback(pc):
     
     if display_segmentation_result:
         window_segmentation_result = cv_image.copy()
-        for i in reversed(range(masks.shape[0])):
-            mask = masks[i]
-            classname = classes[i]
-            score = scores[i]
-            box = boxes[i]
-            color = COLORS[i % len(COLORS)]
-            window_segmentation_result = draw_segmentation_result(window_segmentation_result, mask, classname, score, box, color)
+        if classes is not None:
+            for i in reversed(range(classes.shape[0])):
+                classname = classes[i]
+                score = scores[i]
+                box = boxes[i]
+                color = COLORS[i % len(COLORS)]
+                draw_one_box(window_segmentation_result, classname, score, box, color, line_thickness=1)
     if display_fusion_result:
         window_fusion_result = cv_image.copy()
         num = len(objs)
         for i in range(num):
             if objs[i].tracker_blind_update > 0:
                 continue
-            mask = objs[i].mask
+            classname = objs[i].classname
+            score = objs[i].score
+            box = objs[i].box
             color = objs[i].color
-            window_fusion_result = draw_mask(window_fusion_result, mask, color)
+            draw_one_box(window_fusion_result, classname, score, box, color, line_thickness=1)
             xs = objs[i].xs
             ys = objs[i].ys
             zs = objs[i].zs
@@ -945,8 +1069,8 @@ if __name__ == '__main__':
     min_distance = rospy.get_param("~min_distance")
     max_distance = rospy.get_param("~max_distance")
     
-    # 初始化YolactDetector
-    detector = YolactDetector()
+    # 初始化Yolov5Detector
+    detector = Yolov5Detector()
     
     # 准备图像序列
     print('Waiting for topic...')
@@ -977,17 +1101,14 @@ if __name__ == '__main__':
     processing_object = rospy.get_param("~processing_object")
     
     if processing_object == 'both':
-        items = ['car', 'person']
-        score_thresholds = [0.65, 0.15]
-        top_ks = [10, 10]
+        items = [0, 2, 5, 7]
+        conf_thres = 0.25
     elif processing_object == 'car':
-        items = ['car']
-        score_thresholds = [0.65]
-        top_ks = [20]
+        items = [2, 5, 7]
+        conf_thres = 0.25
     elif processing_object == 'person':
-        items = ['person']
-        score_thresholds = [0.15]
-        top_ks = [20]
+        items = [0]
+        conf_thres = 0.25
     else:
         raise Exception('processing_object is not "car" or "person" or "both".')
     
