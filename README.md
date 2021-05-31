@@ -3,46 +3,31 @@
 ROS package for detection and tracking
 
 ## 安装
- - 设置环境依赖，并确保系统已经安装ROS
-    - 使用Anaconda
-      ```
-      # 创建名为yolact-env的虚拟环境
-      conda create -n yolact-env python=3.6.9
-      conda activate yolact-env
-   
-      # 安装PyTorch、torchvision以及其他功能包
-      conda install pytorch==1.5.1 torchvision==0.6.1 cudatoolkit=10.2 -c pytorch
-      pip install cython
-      pip install opencv-python pillow pycocotools matplotlib
-      pip install -U scikit-learn
-      
-      # 使Python3与ROS兼容
-      pip install catkin_tools
-      pip install rospkg
-      ```
-    - 单独使用pip(以Python 3.5.2为例)
-      ```
-      # 安装PyTorch、torchvision以及其他功能包
-      sudo pip3 install torch==1.0.1 -f https://download.pytorch.org/whl/cu90/stable
-      sudo pip3 install torchvision==0.2.2
-      sudo pip3 install cython
-      sudo pip3 install opencv-python pillow pycocotools matplotlib
-      sudo pip3 install -U scikit-learn
-      
-      # 使Python3与ROS兼容
-      sudo pip3 install catkin_tools
-      sudo pip3 install rospkg
-      ```
  - 建立工作空间并拷贝这个库
    ```Shell
    mkdir -p ros_ws/src
    cd ros_ws/src
    git clone https://github.com/shangjie-li/detection_and_tracking.git --recursive
    git clone https://github.com/shangjie-li/points_process.git
+   git clone https://github.com/shangjie-li/points_ground_filter.git
    cd ..
    catkin_make
    ```
- - 下载模型文件[yolact_resnet50_54_800000.pth](https://drive.google.com/file/d/1yp7ZbbDwvMiFJEq4ptVKTYTI2VeRDXl0/view?usp=sharing)，并保存至目录`detection_and_tracking/modules/yolact/weights`
+ - 下载模型文件[YOLOv5s](https://github.com/ultralytics/yolov5/releases/tag/v5.0)，并保存至目录`detection_and_tracking/modules/yolov5`
+ - 使用Anaconda设置环境依赖，并确保系统已经安装ROS
+   ```
+   # 创建名为yolov5的虚拟环境
+   conda create -n yolov5 python=3.8
+   conda activate yolov5
+   
+   # 安装yolov5所需依赖
+   pip install -r detection_and_tracking/modules/yolov5/requirements.txt
+   
+   # 安装其他功能包
+   pip install -U scikit-learn
+   pip install catkin_tools
+   pip install rospkg
+   ```
 
 ## 参数配置
  - 编写相机与激光雷达标定参数`detection_and_tracking/conf/head_camera.yaml`
@@ -90,7 +75,7 @@ ROS package for detection and tracking
    record_time:                        True
   
    sub_image_topic:                    /usb_cam/image_raw
-   sub_point_clouds_topic:             /pandar_points_processed
+   sub_point_clouds_topic:             /pandar_points_no_ground
    pub_marker_topic:                   /objects
    pub_marker_tracked_topic:           /objects_tracked
    calibration_file:                   head_camera.yaml
@@ -143,11 +128,12 @@ ROS package for detection and tracking
     - `min_distance`和`max_distance`指明期望的点云相对激光雷达的限制距离，单位为米。
 
 ## 运行
- - 启动点云预处理节点`points_process`
+ - 启动点云预处理节点`points_process`和地面滤波节点`points_ground_filter`
    ```Shell
    cd ros_ws
    source devel/setup.bash
    roslaunch points_process points_process.launch # Don't forget to adjust parameters in the launch file
+   roslaunch points_ground_filter points_ground_filter.launch # Don't forget to adjust parameters in the launch file
    ```
  - 加载参数文件至ROS参数服务器
    ```Shell
