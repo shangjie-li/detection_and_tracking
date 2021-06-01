@@ -25,9 +25,9 @@ import torch.backends.cudnn as cudnn
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages, letterbox
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
-from utils.plots import plot_one_box
+from utils.general import (
+    check_img_size, non_max_suppression, apply_classifier, scale_coords,
+    xyxy2xywh, plot_one_box, strip_optimizer, set_logging)
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
 def create_random_color():
@@ -80,8 +80,8 @@ class Yolov5Detector():
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         
         # Run inference
-        if self.device.type != 'cpu':
-            self.model(torch.zeros(1, 3, self.img_size, self.img_size).to(self.device).type_as(next(self.model.parameters())))  # run once
+        img = torch.zeros((1, 3, self.img_size, self.img_size), device=self.device)  # init img
+        _ = self.model(img.half() if self.half else img) if self.device.type != 'cpu' else None  # run once
     
     def run(self, img0, items=None, conf_thres=0.25):
         # 功能：运行Yolov5网络以检测图像中的目标
@@ -93,7 +93,7 @@ class Yolov5Detector():
         #      boxes <class 'numpy.ndarray'> (N, 4) N为目标数量，无目标时为None
         
         # Padded resize
-        img = letterbox(img0, self.img_size, stride=self.stride)[0]
+        img = letterbox(img0, new_shape=self.img_size)[0]
         
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
