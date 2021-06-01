@@ -17,8 +17,8 @@ ROS package for detection and tracking
  - 使用Anaconda设置环境依赖，并确保系统已经安装ROS
    ```
    # 创建名为yolov5的虚拟环境
-   conda create -n yolov5 python=3.8
-   conda activate yolov5
+   conda create -n yolov5.v5.0 python=3.8
+   conda activate yolov5.v5.0
    
    # 安装yolov5所需依赖
    pip install -r detection_and_tracking/modules/yolov5/requirements.txt
