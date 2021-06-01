@@ -13,12 +13,12 @@ ROS package for detection and tracking
    cd ..
    catkin_make
    ```
- - 下载模型文件[YOLOv5s](https://github.com/ultralytics/yolov5/releases/tag/v5.0)，并保存至目录`detection_and_tracking/modules/yolov5`
+ - 下载模型文件[YOLOv5s](https://github.com/ultralytics/yolov5/releases/tag/v3.0)，并保存至目录`detection_and_tracking/modules/yolov5`
  - 使用Anaconda设置环境依赖，并确保系统已经安装ROS
    ```
    # 创建名为yolov5的虚拟环境
-   conda create -n yolov5.v5.0 python=3.8
-   conda activate yolov5.v5.0
+   conda create -n yolov5.v3.1 python=3.8
+   conda activate yolov5.v3.1
    
    # 安装yolov5所需依赖
    pip install -r detection_and_tracking/modules/yolov5/requirements.txt
