@@ -11,7 +11,6 @@ from matplotlib import cm
 from sklearn.cluster import DBSCAN
 from sensor_msgs.msg import PointCloud2, PointField, Image
 from visualization_msgs.msg import Marker, MarkerArray
-from perception_msgs.msg import Obstacle, ObstacleArray
 
 try:
     import cv2
@@ -554,55 +553,6 @@ def publish_marker_msg(pub, header, frame_rate, objs, random_number=True):
     
     pub.publish(markerarray)
 
-def publish_obstacle_msg(pub, header, frame_rate, objs, random_number=True):
-    obstaclearray = ObstacleArray()
-    
-    num = len(objs)
-    for i in range(num):
-        obstacle = Obstacle()
-        obstacle.header = header
-        
-        # 提取目标信息
-        obj = objs[i]
-        
-        # 设置该障碍物的命名空间和ID，ID应该是独一无二的
-        # 具有相同命名空间和ID的障碍物将会覆盖前一个
-        obstacle.ns = obj.classname
-        if random_number:
-            obstacle.id = i
-        else:
-            obstacle.id = obj.number
-        
-        # 设置障碍物位姿
-        obstacle.pose.position.x = obj.x0
-        obstacle.pose.position.y = obj.y0
-        obstacle.pose.position.z = obj.z0
-        obstacle.pose.orientation.x = 0.0
-        obstacle.pose.orientation.y = 0.0
-        obstacle.pose.orientation.z = math.sin(0.5 * obj.phi)
-        obstacle.pose.orientation.w = math.cos(0.5 * obj.phi)
-        
-        # 设置障碍物尺寸
-        obstacle.scale.x = obj.l
-        obstacle.scale.y = obj.w
-        obstacle.scale.z = obj.h
-        
-        # 设置障碍物速度
-        obstacle.v_validity = False if random_number else True
-        obstacle.vx = obj.vx
-        obstacle.vy = obj.vy
-        obstacle.vz = 0
-        
-        # 设置障碍物加速度
-        obstacle.a_validity = False
-        obstacle.ax = 0
-        obstacle.ay = 0
-        obstacle.az = 0
-        
-        obstaclearray.obstacles.append(obstacle)
-    
-    pub.publish(obstaclearray)
-
 def image_callback(image):
     global cv_stamps
     global cv_images
@@ -713,13 +663,11 @@ def point_clouds_callback(pc):
     # 模式切换
     if processing_mode == 'D':
         publish_marker_msg(pub_marker, pc.header, frame_rate, objs, True)
-        publish_obstacle_msg(pub_obstacle, pc.header, frame_rate, objs, True)
         objs = objs
         display_gate = False
     elif processing_mode == 'DT':
         publish_marker_msg(pub_marker, pc.header, frame_rate, objs, True)
         publish_marker_msg(pub_marker_tracked, pc.header, frame_rate, objs_tracked, False)
-        publish_obstacle_msg(pub_obstacle, pc.header, frame_rate, objs_tracked, False)
         objs = objs_tracked
         display_obj_pc = False
     else:
@@ -948,7 +896,6 @@ if __name__ == '__main__':
     sub_point_clouds_topic = rospy.get_param("~sub_point_clouds_topic")
     pub_marker_topic = rospy.get_param("~pub_marker_topic")
     pub_marker_tracked_topic = rospy.get_param("~pub_marker_tracked_topic")
-    pub_obstacle_topic = 'obstacle_array'
     
     # 设置标定参数
     calibration_file = rospy.get_param("~calibration_file")
@@ -1085,7 +1032,6 @@ if __name__ == '__main__':
     rospy.Subscriber(sub_point_clouds_topic, PointCloud2, point_clouds_callback, queue_size=1, buff_size=52428800)
     pub_marker = rospy.Publisher(pub_marker_topic, MarkerArray, queue_size=1)
     pub_marker_tracked = rospy.Publisher(pub_marker_tracked_topic, MarkerArray, queue_size=1)
-    pub_obstacle = rospy.Publisher(pub_obstacle_topic, ObstacleArray, queue_size=1)
     
     # 与C++的spin不同，rospy.spin()的作用是当节点停止时让python程序退出
     rospy.spin()
