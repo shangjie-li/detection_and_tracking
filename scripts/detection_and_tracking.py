@@ -166,7 +166,7 @@ def draw_point_clouds_from_bev_view(img, xs, ys, center_alignment=True, circle_m
             
     return img
 
-def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, color, display_class=True, display_id=True, display_xx=True):
+def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, color, display_class=True, display_id=True, display_xx=True, l=0, w=0, h=0, phi=0):
     # 功能：在图像上绘制目标信息
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      classname <class 'str'> 类别
@@ -207,10 +207,15 @@ def draw_object_info(img, classname, number, xref, yref, vx, vy, uv_1, uv_2, col
         text_w_ve, _ = cv2.getTextSize(text_ve, font_face, font_scale, font_thickness)[0]
         cv2.rectangle(img, (u2, v2 + text_h + 4), (u2 + text_w_ve, v2 + 2 * text_h + 8), color, -1)
         cv2.putText(img, text_ve, (u2, v2 + 2 * text_h + 5), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+        
+        text_sc = '(%.1fm, %.1fm, %.1fm, %.1frad)' % (l, w, h, phi)
+        text_w_sc, _ = cv2.getTextSize(text_sc, font_face, font_scale, font_thickness)[0]
+        cv2.rectangle(img, (u2, v2 + 2 * text_h + 8), (u2 + text_w_sc, v2 + 3 * text_h + 12), color, -1)
+        cv2.putText(img, text_sc, (u2, v2 + 3 * text_h + 9), font_face, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
     
     return img
 
-def draw_object_model_from_main_view(img, objs, mat, frame, display_frame, display_class, display_id, display_state, thickness=1):
+def draw_object_model_from_main_view(img, objs, mat, frame, display_frame, display_class, display_id, display_state, thickness=1, fitting_mode=False):
     # 功能：在图像上绘制目标轮廓
     # 输入：img <class 'numpy.ndarray'> (frame_height, frame_width, 3)
     #      objs <class 'list'> 存储目标检测结果
@@ -226,39 +231,54 @@ def draw_object_model_from_main_view(img, objs, mat, frame, display_frame, displ
     idxs = list(np.argsort(dds))
     
     for i in reversed(idxs):
-        # 绘制三维边界框
-        xst, yst = compute_obb_vertex_coordinates(objs[i].x0, objs[i].y0, objs[i].l, objs[i].w, objs[i].phi)
-        z = objs[i].z0 - objs[i].h / 2
-        polygon = np.zeros((4, 1, 3))
-        for j in range(4):
-            polygon[j, 0, :] = np.array([xst[j], yst[j], z])
-        
-        height = objs[i].h
-        color = objs[i].color
-        img, flag = draw_3d_model(img, polygon, height, mat, color, thickness)
-        
-        # 选取三维边界框中的顶点，绘制目标信息
-        pdds = []
-        for j in range(4):
-            pdd = polygon[j, 0, 0] ** 2 + polygon[j, 0, 1] ** 2
-            pdds.append(pdd)
-        pidxs = list(np.argsort(pdds))
-        pidx = pidxs[0]
-        
-        frame_height = img.shape[0]
-        frame_width = img.shape[1]
-        
-        xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2] + height, 1]])
-        _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
-        xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2], 1]])
-        _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
-        
-        display_info = False
-        if display_class or display_id or display_state: display_info = True
-        if flag and display_info:
-            img = draw_object_info(img, objs[i].classname, objs[i].number,
-             objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
-              display_class, display_id, display_state)
+        if fitting_mode:
+            # 绘制三维边界框
+            xst, yst = compute_obb_vertex_coordinates(objs[i].x0, objs[i].y0, objs[i].l, objs[i].w, objs[i].phi)
+            z = objs[i].z0 - objs[i].h / 2
+            polygon = np.zeros((4, 1, 3))
+            for j in range(4):
+                polygon[j, 0, :] = np.array([xst[j], yst[j], z])
+            
+            height = objs[i].h
+            color = objs[i].color
+            img, flag = draw_3d_model(img, polygon, height, mat, color, thickness)
+            
+            # 选取三维边界框中的顶点，绘制目标信息
+            pdds = []
+            for j in range(4):
+                pdd = polygon[j, 0, 0] ** 2 + polygon[j, 0, 1] ** 2
+                pdds.append(pdd)
+            pidxs = list(np.argsort(pdds))
+            pidx = pidxs[0]
+            
+            frame_height = img.shape[0]
+            frame_width = img.shape[1]
+            
+            xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2] + height, 1]])
+            _, uv_1 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            xyz = np.array([[polygon[pidx, 0, 0], polygon[pidx, 0, 1], polygon[pidx, 0, 2], 1]])
+            _, uv_2 = project_point_clouds(xyz, mat, frame_height, frame_width, crop=False)
+            
+            display_info = False
+            if display_class or display_id or display_state: display_info = True
+            if flag and display_info:
+                img = draw_object_info(img, objs[i].classname, objs[i].number,
+                 objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
+                  display_class, display_id, display_state)
+        else:
+            # 绘制二维边界框
+            xyxy = objs[i].box
+            c1, c2 = (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3]))
+            cv2.rectangle(img, c1, c2, objs[i].color, thickness, lineType=cv2.LINE_AA)
+            
+            # 选取二维边界框中的顶点，绘制目标信息
+            uv_1 = np.array([int(xyxy[0]), int(xyxy[1])]).reshape(1, 2)
+            uv_2 = np.array([int(xyxy[0]), int(xyxy[3])]).reshape(1, 2)
+            
+            if display_class or display_id or display_state:
+                img = draw_object_info(img, objs[i].classname, objs[i].number,
+                 objs[i].xref, objs[i].yref, objs[i].vx, objs[i].vy, uv_1, uv_2, objs[i].color,
+                  display_class, display_id, display_state, l=objs[i].l, w=objs[i].w, h=objs[i].h, phi=objs[i].phi)
     
     font_face = cv2.FONT_HERSHEY_DUPLEX
     font_scale = 0.4
@@ -321,7 +341,7 @@ def draw_object_model_from_bev_view(img, objs, display_obj_pc=False, display_gat
         
     return img
 
-def fuse(xyz, uv, classes, scores, boxes, img_height, img_width):
+def fuse(xyz, uv, classes, scores, boxes, img_height, img_width, fitting_mode=False):
     # 功能：点云与图像实例匹配
     # 输入：xyz <class 'numpy.ndarray'> (n, 4) 代表三维点云的齐次坐标[x, y, z, 1]，n为点的数量
     #      uv  <class 'numpy.ndarray'> (n, 2) 代表图像坐标[u, v]，n为点的数量
@@ -352,18 +372,50 @@ def fuse(xyz, uv, classes, scores, boxes, img_height, img_width):
                 obj.classname, obj.score, obj.box = str(classes[i]), float(scores[i]), boxes[i]
                 obj.xs, obj.ys, obj.zs = xsc, ysc, zsc
                 
-                if classes[i] == 'car' or 'bus' or 'truck':  # 拟合3D盒子模型
-                    obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
-                elif classes[i] == 'person':  # 拟合3D圆点模型
-                    obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cylinder(xsc, ysc, zsc)
-                    obj.l, obj.w = min(obj.l, 1.0), min(obj.w, 1.0)
+                if classes[i] in ['car', 'bus', 'truck']:  # 拟合3D盒子模型
+                    if fitting_mode:
+                        obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
+                    else:
+                        max_xsc, min_xsc = max(xsc), min(xsc)
+                        max_ysc, min_ysc = max(ysc), min(ysc)
+                        max_zsc, min_zsc = max(zsc), min(zsc)
+                        
+                        obj.x0 = (max_xsc + min_xsc) / 2
+                        obj.y0 = (max_ysc + min_ysc) / 2
+                        obj.z0 = (max_zsc + min_zsc) / 2
+                        
+                        if classes[i] == 'car':
+                            obj.l, obj.w, obj.h = 5.0, 2.0, 1.8
+                            _, _, _, _, _, _, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
+                        elif classes[i] == 'bus':
+                            obj.l, obj.w, obj.h = 8.0, 3.0, 2.8
+                            _, _, _, _, _, _, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
+                        elif classes[i] == 'truck':
+                            obj.l, obj.w, obj.h = 6.0, 2.5, 2.5
+                            _, _, _, _, _, _, obj.phi, obj.has_orientation = fit_3d_model_of_cube(xsc, ysc, zsc)
+                
+                elif classes[i] in ['person']:  # 拟合3D圆点模型
+                    if fitting_mode:
+                        obj.x0, obj.y0, obj.z0, obj.l, obj.w, obj.h, obj.phi, obj.has_orientation = fit_3d_model_of_cylinder(xsc, ysc, zsc)
+                        obj.l, obj.w = min(obj.l, 1.0), min(obj.w, 1.0)
+                    else:
+                        max_xsc, min_xsc = max(xsc), min(xsc)
+                        max_ysc, min_ysc = max(ysc), min(ysc)
+                        max_zsc, min_zsc = max(zsc), min(zsc)
+                        
+                        obj.x0 = (max_xsc + min_xsc) / 2
+                        obj.y0 = (max_ysc + min_ysc) / 2
+                        obj.z0 = (max_zsc + min_zsc) / 2
+                        
+                        obj.l, obj.w, obj.h = 0.5, 0.5, 1.8
+                        obj.phi, obj.has_orientation = 0.0, False
                 
                 obj.xref, obj.yref = obj.x0, obj.y0
                 objs.append(obj)
                 
     return objs
 
-def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, frame_rate, COLORS):
+def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, frame_rate, COLORS, fitting_mode=False):
     # 数据关联与跟踪
     num = len(objs_tracked)
     for j in range(num):
@@ -418,11 +470,13 @@ def track(number, objs_tracked, objs_temp, objs_detected, blind_update_limit, fr
         
         objs_tracked[j].x0 = objs_tracked[j].xref
         objs_tracked[j].y0 = objs_tracked[j].yref
-        objs_tracked[j].l = objs_tracked[j].tracker_l.xx[0, 0]
-        objs_tracked[j].w = objs_tracked[j].tracker_w.xx[0, 0]
         
-        if objs_tracked[j].l < 0: objs_tracked[j].l = 0
-        if objs_tracked[j].w < 0: objs_tracked[j].w = 0
+        if fitting_mode:
+            objs_tracked[j].l = objs_tracked[j].tracker_l.xx[0, 0]
+            objs_tracked[j].w = objs_tracked[j].tracker_w.xx[0, 0]
+            
+            if objs_tracked[j].l < 0: objs_tracked[j].l = 0
+            if objs_tracked[j].w < 0: objs_tracked[j].w = 0
         
     # 删除长时间未跟踪的目标
     objs_remained = []
