@@ -756,7 +756,6 @@ def point_clouds_callback(pc):
     if display_3d_modeling_result:
         window_3d_modeling_result = cv_image.copy()
         window_3d_modeling_result = draw_object_model_from_main_view(window_3d_modeling_result, objs, calib.projection_l2i, frame, display_frame, display_class, display_id, display_state, thickness=2)
-    time_display = time.time() - time_start
     
     # 显示与保存
     if display_image_raw:
@@ -846,6 +845,7 @@ def point_clouds_callback(pc):
             video_3d_modeling_result.release()
             print("Save video of 3d_modeling_result.")
         rospy.signal_shutdown("Everything is over now.")
+    time_display = time.time() - time_start
     
     # 记录耗时情况
     time_all = time.time() - time_start_all

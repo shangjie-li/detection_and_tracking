@@ -17,13 +17,13 @@ dt:
   
   display_segmentation_result:        False
   display_fusion_result:              False
-  display_calibration_result:         False
+  display_calibration_result:         True
   
   display_2d_modeling_result:         False
   display_obj_pc:                     False
   display_gate:                       False
   
-  display_3d_modeling_result:         False
+  display_3d_modeling_result:         True
   display_frame:                      True
   display_class:                      True
   display_id:                         True
