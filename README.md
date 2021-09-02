@@ -3,36 +3,22 @@
 ROS package for detection and tracking
 
 ## 安装
- - 设置环境依赖，并确保系统已经安装ROS
-    - 使用Anaconda
-      ```
-      # 创建名为yolact-env的虚拟环境
-      conda create -n yolact-env python=3.6.9
-      conda activate yolact-env
+ - 使用Anaconda设置环境依赖，并确保系统已经安装ROS
+   ```
+   # 创建名为yolact-env的虚拟环境
+   conda create -n yolact-env python=3.6.9
+   conda activate yolact-env
    
-      # 安装PyTorch、torchvision以及其他功能包
-      conda install pytorch==1.5.1 torchvision==0.6.1 cudatoolkit=10.2 -c pytorch
-      pip install cython
-      pip install opencv-python pillow pycocotools matplotlib
-      pip install -U scikit-learn
-      
-      # 使Python3与ROS兼容
-      pip install catkin_tools
-      pip install rospkg
-      ```
-    - 单独使用pip(以Python 3.5.2为例)
-      ```
-      # 安装PyTorch、torchvision以及其他功能包
-      sudo pip3 install torch==1.0.1 -f https://download.pytorch.org/whl/cu90/stable
-      sudo pip3 install torchvision==0.2.2
-      sudo pip3 install cython
-      sudo pip3 install opencv-python pillow pycocotools matplotlib
-      sudo pip3 install -U scikit-learn
-      
-      # 使Python3与ROS兼容
-      sudo pip3 install catkin_tools
-      sudo pip3 install rospkg
-      ```
+   # 安装PyTorch、torchvision以及其他功能包
+   conda install pytorch==1.5.1 torchvision==0.6.1 cudatoolkit=10.2 -c pytorch
+   pip install cython
+   pip install opencv-python pillow pycocotools matplotlib
+   pip install -U scikit-learn
+   
+   # 使Python3与ROS兼容
+   pip install catkin_tools
+   pip install rospkg
+   ```
  - 建立工作空间并拷贝这个库
    ```Shell
    mkdir -p ros_ws/src
